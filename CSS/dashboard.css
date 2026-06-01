@@ -1,0 +1,595 @@
+.page-powerbi {
+  background:
+    radial-gradient(circle at top left, rgba(255, 195, 113, 0.35), transparent 35%),
+    radial-gradient(circle at bottom center, rgba(100, 149, 237, 0.35), transparent 35%),
+    radial-gradient(circle at top right, rgba(212, 128, 255, 0.28), transparent 30%),
+    #f5f7fb;
+}
+
+.page-powerbi .powerbi-content {
+  padding: 28px;
+}
+
+.page-powerbi .dashboard-shell {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 28px;
+  padding: 28px;
+  min-height: calc(100vh - 56px);
+  box-shadow: 0 14px 40px rgba(31, 41, 55, 0.08);
+}
+
+.page-powerbi .dashboard-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.page-powerbi .dashboard-breadcrumb {
+  margin: 0 0 4px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.page-powerbi .dashboard-title {
+  margin: 0;
+  font-size: 38px;
+  line-height: 1.05;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.page-powerbi .dashboard-subtitle {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.page-powerbi .dashboard-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-powerbi .dashboard-date-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.88);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 12px 16px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.page-powerbi .dashboard-status {
+  margin-bottom: 16px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.page-powerbi .kpi-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.page-powerbi .kpi-card-modern {
+  background: rgba(255,255,255,0.88);
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 20px;
+  min-height: 150px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+}
+
+.page-powerbi .kpi-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.page-powerbi .kpi-card-head i {
+  color: #3b82f6;
+}
+
+.page-powerbi .kpi-card-value {
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 10px;
+}
+
+.page-powerbi .kpi-card-label {
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 14px;
+}
+
+.page-powerbi .kpi-card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #facc15;
+  color: #0f172a;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.page-powerbi .kpi-card-badge.warning {
+  background: #fbbf24;
+}
+
+.page-powerbi .kpi-card-foot {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.page-powerbi .dashboard-grid-main {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.page-powerbi .dashboard-panel {
+  background: rgba(255,255,255,0.90);
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+}
+
+.page-powerbi .dashboard-panel.large {
+  min-height: 360px;
+}
+
+.page-powerbi .dashboard-panel.side {
+  min-height: 360px;
+}
+
+.page-powerbi .dashboard-panel.medium {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-powerbi .dashboard-panel.full {
+  margin-top: 18px;
+}
+
+.page-powerbi .panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.page-powerbi .panel-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.page-powerbi .panel-head p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.page-powerbi .panel-chip {
+  background: #eef2ff;
+  color: #4338ca;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.page-powerbi .chart-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.page-powerbi .line-wrap {
+  height: 260px;
+}
+
+.page-powerbi .donut-wrap {
+  height: 280px;
+}
+
+.page-powerbi .bar-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 380px;
+}
+
+.page-powerbi .table-modern-wrap {
+  overflow-x: auto;
+}
+
+.page-powerbi .table-modern {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.page-powerbi .table-modern thead tr {
+  background: #f8fafc;
+}
+
+.page-powerbi .table-modern th,
+.page-powerbi .table-modern td {
+  padding: 12px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  font-size: 14px;
+}
+
+.page-powerbi .table-modern th {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.page-powerbi .score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #facc15;
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.page-powerbi .score-pill.green {
+  background: #86efac;
+}
+
+.page-powerbi .score-pill.blue {
+  background: #93c5fd;
+}
+
+.page-powerbi .score-pill.red {
+  background: #fca5a5;
+}
+
+@media (max-width: 1200px) {
+  .page-powerbi .kpi-grid-modern {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-powerbi .dashboard-grid-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-powerbi .powerbi-content {
+    padding: 16px;
+  }
+
+  .page-powerbi .dashboard-shell {
+    padding: 18px;
+  }
+
+  .page-powerbi .dashboard-title {
+    font-size: 28px;
+  }
+
+  .page-powerbi .kpi-grid-modern {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =====================================================
+   FILTROS DASHBOARD
+   ===================================================== */
+.dashboard-filters-panel {
+  margin-bottom: 24px;
+}
+
+.dashboard-filters-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1.3fr auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.dashboard-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-filter-field label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dashboard-select {
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid #dbe3ee;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.96rem;
+}
+
+.dashboard-select:focus {
+  outline: none;
+  border-color: #8bb4ff;
+  box-shadow: 0 0 0 0.2rem rgba(45, 109, 246, 0.12);
+}
+
+.dashboard-filter-actions {
+  display: flex;
+  align-items: end;
+}
+
+.dashboard-btn-secondary {
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dashboard-btn-secondary:hover {
+  background: #f8fafc;
+}
+
+/* =====================================================
+   RESUMEN ÚLTIMA AUDITORÍA
+   ===================================================== */
+.ultima-auditoria-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ua-card {
+  background: #f8fbff;
+  border: 1px solid #e5edf8;
+  border-radius: 18px;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 110px;
+  justify-content: center;
+}
+
+.ua-card.score {
+  background: linear-gradient(135deg, #eef6ff, #f7fbff);
+  border-color: #cfe1ff;
+}
+
+.ua-label {
+  font-size: 0.86rem;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ua-card strong {
+  font-size: 1.08rem;
+  color: #0f172a;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.ua-card.score strong {
+  font-size: 1.8rem;
+  color: #2563eb;
+}
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+@media (max-width: 1100px) {
+  .ultima-auditoria-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 992px) {
+  .dashboard-filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-filter-actions {
+    align-items: stretch;
+  }
+
+  .dashboard-btn-secondary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .ultima-auditoria-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =====================================================
+   KPI   PÉGALO AL FINAL DEL CSS   KPI GENERAL GRANDE
+   ===================================================== */
+
+.page-powerbi .kpi-grid-single {
+  grid-template-columns: 1fr !important;
+}
+
+.page-powerbi .kpi-card-score-large {
+  min-height: 220px;
+  padding: 24px 28px;
+}
+
+.page-powerbi .kpi-card-score-large .kpi-card-head span {
+  font-size: 0.95rem;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.page-powerbi .kpi-card-score-large .kpi-card-label {
+  font-size: 1.45rem;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 10px;
+  margin-bottom: 12px;
+}
+
+/* ✅ NUEVO ESTILO PARA EL NÚMERO GRANDE */
+.page-powerbi .kpi-card-score-big {
+  font-size: clamp(4.1rem, 6vw, 3rem);
+  font-weight: 900;
+  line-height: 0.92;
+  color: #0f172a;
+  letter-spacing: -0.04em;
+}
+
+/* ✅ SI TODAVÍA SIGUES USANDO kpi-card-badge, también lo vuelve grande */
+.page-powerbi .kpi-card-score-large .kpi-card-badge,
+.page-powerbi .kpi-card-badge#kpiGeneralScore {
+  display: inline-block;
+  background: transparent;
+  color: #0f172a;
+  border-radius: 0;
+  padding: 0;
+  font-size: clamp(5.5rem, 11vw, 8rem);
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  min-width: unset;
+}
+
+/* Ajuste móvil */
+@media (max-width: 768px) {
+  .page-powerbi .kpi-card-score-large {
+    min-height: 180px;
+    padding: 20px;
+  }
+
+  .page-powerbi .kpi-card-score-large .kpi-card-label {
+    font-size: 1.15rem;
+  }
+
+  .page-powerbi .kpi-card-score-big,
+  .page-powerbi .kpi-card-score-large .kpi-card-badge,
+  .page-powerbi .kpi-card-badge#kpiGeneralScore {
+    font-size: clamp(3.8rem, 14vw, 5.5rem);
+  }
+}
+
+/* =====================================================
+   FILTROS + KPI GENERAL EN LA MISMA FILA
+   PEGAR AL FINAL DE dashboard.css
+===================================================== */
+
+.page-powerbi .dashboard-filter-kpi-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 0.75fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+/* Quita margen extra del panel de filtros cuando está en la fila */
+.page-powerbi .dashboard-filter-kpi-row .dashboard-filters-panel {
+  margin-bottom: 0;
+}
+
+/* Panel de filtros más compacto */
+.page-powerbi .dashboard-filters-inline {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Hace que los filtros ocupen bien el espacio izquierdo */
+.page-powerbi .dashboard-filters-inline .dashboard-filters-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+/* KPI compacto a la derecha */
+.page-powerbi .dashboard-kpi-inline {
+  min-height: auto;
+  height: 100%;
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Texto del KPI más compacto */
+.page-powerbi .dashboard-kpi-inline .kpi-card-head {
+  margin-bottom: 12px;
+}
+
+.page-powerbi .dashboard-kpi-inline .kpi-card-label {
+  font-size: 1.25rem;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+/* Número más ajustado para que no haga enorme la tarjeta */
+.page-powerbi .dashboard-kpi-inline .kpi-card-score-big {
+  font-size: clamp(3.4rem, 5vw, 4.8rem);
+  line-height: 0.95;
+}
+
+/* Evita que quede el espacio viejo del KPI grid */
+.page-powerbi .kpi-grid-single {
+  margin-bottom: 0;
+}
+
+/* Responsive tablet */
+@media (max-width: 1200px) {
+  .page-powerbi .dashboard-filter-kpi-row {
+    grid-template-columns: 1fr;
+  }
+
+  .page-powerbi .dashboard-kpi-inline {
+    min-height: 180px;
+  }
+}
+
+/* Responsive filtros */
+@media (max-width: 992px) {
+  .page-powerbi .dashboard-filters-inline .dashboard-filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-powerbi .dashboard-kpi-inline .kpi-card-score-big {
+    font-size: clamp(3rem, 10vw, 4.5rem);
+  }
+}

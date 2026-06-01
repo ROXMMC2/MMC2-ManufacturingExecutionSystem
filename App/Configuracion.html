@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuración | Model Line</title>
+
+  <!-- Bootstrap -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <!-- Font Awesome -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+
+  <!-- Tu CSS -->
+  <link rel="stylesheet" href="../CSS/style.css?v=999" />
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar-custom">
+      <div class="sidebar-top">
+        <div class="brand-box">
+          <div class="brand-icon">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+
+          <div class="brand-text">
+            <h3>Model Line</h3>
+            <p>Sistema de gestión</p>
+          </div>
+        </div>
+
+        <button
+          id="toggleSidebar"
+          class="sidebar-toggle"
+          type="button"
+          aria-label="Abrir/cerrar menú"
+        >
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+
+      <div class="user-chip">
+        <div id="sidebarUserName" class="user-chip-name">Usuario</div>
+        <div id="sidebarUserRole" class="user-chip-role">Usuario</div>
+      </div>
+
+      <hr class="sidebar-divider" />
+
+      <nav class="sidebar-menu">
+        <a href="index.html" class="sidebar-link">
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-house"></i>
+          </span>
+          <span class="sidebar-link-text">Inicio</span>
+        </a>
+
+        <a href="Auditoria.html" class="sidebar-link">
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-clipboard-check"></i>
+          </span>
+          <span class="sidebar-link-text">Nueva Auditoría</span>
+        </a>
+
+        <!-- REPORTS (BOTÓN DESPLEGABLE) -->
+      <div class="sidebar-link-group reports-menu-group">
+
+        <!-- BOTÓN PRINCIPAL (NO NAVEGA) -->
+        <button
+          type="button"
+          id="btnReportsToggle"
+          class="sidebar-link sidebar-link-button"
+        >
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-chart-line"></i>
+          </span>
+          <span class="sidebar-link-text">Reportes</span>
+          <span class="sidebar-link-caret">
+            <i class="fa-solid fa-chevron-down"></i>
+          </span>
+        </button>
+
+        <!-- SUBMENÚ -->
+        <div id="reportsSubmenu" class="sidebar-submenu">
+
+          <a href="Reportes.html" class="sidebar-sublink">
+            <span class="sidebar-sublink-icon">
+              <i class="fa-solid fa-table-list"></i>
+            </span>
+            <span>Reportes</span>
+          </a>
+
+          <a href="ActionPlan.html" class="sidebar-sublink">
+            <span class="sidebar-sublink-icon">
+              <i class="fa-solid fa-list-check"></i>
+            </span>
+            <span>Plan de Acción</span>
+          </a>
+
+        </div>
+      </div>
+
+        <a href="PowerBi.html" class="sidebar-link">
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-chart-pie"></i>
+          </span>
+          <span class="sidebar-link-text">Análisis de Datos</span>
+        </a>
+      </nav>
+
+      <a href="Configuracion.html" class="sidebar-link active" id="menuSettings" data-admin-only="true">
+        <span class="sidebar-link-icon">
+          <i class="fa-solid fa-gear"></i>
+        </span>
+        <span class="sidebar-link-text">Configuración</span>
+      </a>
+
+      <div class="sidebar-bottom">
+        <a href="#" class="sidebar-link" id="btnLogout">
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </span>
+          <span class="sidebar-link-text">Cerrar sesión</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- CONTENIDO -->
+    <main class="page-content">
+      <div class="topbar">
+        <div class="topbar-logo">
+          <img src="../Images/ROX 6 (1).png" alt="ROX Logo" width="90" />
+        </div>
+
+        <div class="topbar-title">Configuración</div>
+
+        <div class="topbar-logo justify-content-end">
+          <img
+            src="../Images/RA_Logo_Bug-LeftText_rgb.png"
+            alt="Rockwell Automation Logo"
+            width="150"
+          />
+        </div>
+      </div>
+
+      <div class="page-header-card settings-header">
+        <h1 class="settings-title">Configuración del sistema</h1>
+        <p class="settings-subtitle">
+          Administra preguntas, usuarios, business units y production lines.
+        </p>
+      </div>
+
+      <!-- TABS -->
+      <div class="settings-tabs">
+        <button type="button" class="settings-tab-btn active" data-tab="questions">
+          Preguntas
+        </button>
+        <button type="button" class="settings-tab-btn" data-tab="users">
+          Usuarios / Gente
+        </button>
+        <button type="button" class="settings-tab-btn" data-tab="businessUnits">
+          Business Units
+        </button>
+        <button type="button" class="settings-tab-btn" data-tab="productionLines">
+          Production Lines
+        </button>
+      </div>
+
+      <!-- ===================================================== -->
+      <!-- TAB: PREGUNTAS -->
+      <!-- ===================================================== -->
+<section id="tab-questions" class="settings-panel">
+  <h2 class="settings-section-title">Preguntas</h2>
+
+  <div class="settings-card-note">
+    Aquí puedes agregar, editar o eliminar preguntas del sistema.
+  </div>
+
+  <input type="hidden" id="questionId" />
+
+  <div class="settings-grid-3">
+    <!-- MÓDULO -->
+    <div>
+      <label for="questionModule" class="form-label">Módulo</label>
+      <select id="questionModule" class="form-select">
+        <option value="">Selecciona un módulo</option>
+      </select>
+    </div>
+
+    <!-- NUEVA PREGUNTA -->
+    <div>
+      <label for="questionText" class="form-label">Escribir nueva pregunta</label>
+      <input
+        type="text"
+        id="questionText"
+        class="form-control"
+        placeholder="Escribe la pregunta"
+      />
+    </div>
+
+    <!-- NÚMERO DE LA PREGUNTA -->
+    <div>
+      <label for="questionOrder" class="form-label">Número de la pregunta del módulo</label>
+      <input
+        type="number"
+        id="questionOrder"
+        class="form-control"
+        placeholder="Ejemplo: 1"
+        min="1"
+      />
+    </div>
+  </div>
+
+  <div class="settings-actions">
+    <button type="button" class="btn-settings-primary" id="saveQuestionBtn">
+      Guardar pregunta
+    </button>
+    <button type="button" class="btn-settings-secondary" id="clearQuestionBtn">
+      Limpiar
+    </button>
+  </div>
+
+  <div class="settings-table-wrap">
+    <table class="settings-table">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Pregunta</th>
+          <th>Módulo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="questionsTableBody"></tbody>
+    </table>
+  </div>
+</section>
+
+
+      <!-- ===================================================== -->
+      <!-- TAB: USUARIOS -->
+      <!-- ===================================================== -->
+      <section id="tab-users" class="settings-panel d-none">
+        <h2 class="settings-section-title">Usuarios / Gente</h2>
+
+        <div class="settings-card-note">
+          Aquí puedes crear usuarios que podrán iniciar sesión en el sistema.
+        </div>
+
+        <input type="hidden" id="userId" />
+
+        <div class="settings-grid-3">
+          <div>
+            <label for="userName" class="form-label">Nombre</label>
+            <input
+              type="text"
+              id="userName"
+              class="form-control"
+              placeholder="Nombre completo"
+            />
+          </div>
+
+          <div>
+            <label for="userUsername" class="form-label">Usuario</label>
+            <input
+              type="text"
+              id="userUsername"
+              class="form-control"
+              placeholder="Usuario para login"
+            />
+          </div>
+
+          <div>
+            <label for="userPassword" class="form-label">Contraseña</label>
+            <input
+              type="password"
+              id="userPassword"
+              class="form-control"
+              placeholder="Contraseña"
+            />
+          </div>
+        </div>
+
+        <div class="settings-grid-3">
+          <div>
+            <label for="userEmail" class="form-label">Correo</label>
+            <input
+              type="email"
+              id="userEmail"
+              class="form-control"
+              placeholder="correo@empresa.com"
+            />
+          </div>
+
+          <div>
+            <label for="userRole" class="form-label">Rol</label>
+            <select id="userRole" class="form-select">
+              <option value="">Selecciona un rol</option>
+              <option value="admin">Administrador</option>
+              <option value="reviewer">Reviewer</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button type="button" class="btn-settings-primary" id="saveUserBtn">
+            Guardar usuario
+          </button>
+          <button type="button" class="btn-settings-secondary" id="clearUserBtn">
+            Limpiar
+          </button>
+        </div>
+
+        <div class="settings-table-wrap">
+          <table class="settings-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===================================================== -->
+      <!-- TAB: BUSINESS UNITS -->
+      <!-- ===================================================== -->
+      <section id="tab-businessUnits" class="settings-panel d-none">
+        <h2 class="settings-section-title">Business Units</h2>
+
+        <div class="settings-card-note">
+          Aquí puedes crear, editar o eliminar Business Units.
+        </div>
+
+        <input type="hidden" id="businessUnitId" />
+
+        <div class="settings-grid-2">
+          <div>
+            <label for="businessUnitName" class="form-label">Business Unit</label>
+            <input
+              type="text"
+              id="businessUnitName"
+              class="form-control"
+              placeholder="Nombre de la Business Unit"
+            />
+          </div>
+
+          <div class="d-flex align-items-end">
+            <div class="settings-actions">
+              <button type="button" class="btn-settings-primary" id="saveBusinessUnitBtn">
+                Guardar Business Unit
+              </button>
+              <button type="button" class="btn-settings-secondary" id="clearBusinessUnitBtn">
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-table-wrap">
+          <table class="settings-table">
+            <thead>
+              <tr>
+                <th>Business Unit</th>
+                <th>Production Lines relacionadas</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="businessUnitsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===================================================== -->
+      <!-- TAB: PRODUCTION LINES -->
+      <!-- ===================================================== -->
+      <section id="tab-productionLines" class="settings-panel d-none">
+        <h2 class="settings-section-title">Production Lines</h2>
+
+        <div class="settings-card-note">
+          Aquí puedes crear, editar o eliminar Production Lines y asignarlas a una Business Unit.
+        </div>
+
+        <input type="hidden" id="productionLineId" />
+
+        <div class="settings-grid-3">
+          <div>
+            <label for="productionLineName" class="form-label">Production Line</label>
+            <input
+              type="text"
+              id="productionLineName"
+              class="form-control"
+              placeholder="Nombre de la Production Line"
+            />
+          </div>
+
+          <div>
+            <label for="productionLineBusinessUnit" class="form-label">Business Unit</label>
+            <select id="productionLineBusinessUnit" class="form-select">
+              <option value="">Selecciona Business Unit</option>
+            </select>
+          </div>
+
+          <div class="d-flex align-items-end">
+            <div class="settings-actions">
+              <button type="button" class="btn-settings-primary" id="saveProductionLineBtn">
+                Guardar Production Line
+              </button>
+              <button type="button" class="btn-settings-secondary" id="clearProductionLineBtn">
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-table-wrap">
+          <table class="settings-table">
+            <thead>
+              <tr>
+                <th>Production Line</th>
+                <th>Business Unit</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="productionLinesTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Bootstrap -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script src="../JS/JavaScript.js?v=999"></script>
+
+  <script src="../JS/Configuracion.js?v=1001"></script>
+  <script src="../JS/auth.js"></script>
+</body>
+</html>

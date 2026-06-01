@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manufacturing Strategy Evaluation</title>
+
+  <!-- Bootstrap -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <!-- Tu CSS -->
+  <link rel="stylesheet" href="../CSS/style.css?v=3001" />
+</head>
+
+<body class="evaluation-page">
+
+  <!-- TOPBAR CON LOGOS -->
+  <nav class="navbar bg-body-tertiary shadow-sm">
+    <div class="container d-flex justify-content-between align-items-center">
+      <a class="navbar-brand" href="#">
+        <img
+          src="../Images/ROX 6 (1).png"
+          alt="Logo1"
+          width="100"
+          height="65"
+        />
+      </a>
+
+      <a class="navbar-brand" href="#">
+        <img
+          src="../Images/RA_Logo_Bug-LeftText_rgb.png"
+          alt="Logo2"
+          width="150"
+          height="55"
+        />
+      </a>
+    </div>
+  </nav>
+
+  <!-- HEADER DEL MÓDULO -->
+  <div class="container py-4">
+    <div class="evaluation-header-card">
+      <div class="row align-items-center g-3">
+        <div class="col-md-2 text-center">
+          <img
+            id="R1"
+            src="../Images/Manufacturing strategy.png"
+            alt="Manufacturing Strategy"
+            class="img-fluid evaluation-module-image"
+          />
+        </div>
+
+        <div class="col-md-10">
+          <div class="evaluation-header-content">
+            <p class="evaluation-badge">Módulo 1</p>
+
+            <h1 id="moduloNombre" class="evaluation-title">
+              Manufacturing Strategy Evaluation
+            </h1>
+
+            <p class="evaluation-subtitle">
+              Evalúa la efectividad de las prácticas de manufactura, comunicación,
+              mejora continua y gestión visual en tu área.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORMULARIO DINÁMICO -->
+  <div class="container pb-5">
+    <div class="evaluation-wrapper">
+      <div
+        id="questionsContainer"
+        data-module-id="1"
+        data-module-name="Manufacturing Strategy"
+        data-question-start="1"
+        data-question-end="8"
+        data-next-page="Lean_Foundations.html"
+      >
+        <div class="alert alert-light border">
+          Cargando preguntas...
+        </div>
+      </div>
+
+      <div class="evaluation-actions">
+        <button id="btnDemo" type="button" class="btn btn-warning px-4">
+          Prueba
+        </button>
+
+        <button id="btnNextModule" type="button" class="btn btn-primary px-4">
+          Next
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JS PRINCIPAL -->
+<script src="../JS/JavaScript.js?v=3003"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

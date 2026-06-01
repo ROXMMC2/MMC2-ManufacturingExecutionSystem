@@ -1,0 +1,3 @@
+"idreview","idusuario","usuario","idbusinessunit","businessunit","idproductionline","productionline","idpregunta","pregunta","idmodulo","modulo","puntuacion","comentario","fechareview"
+9,1,"Angel Solis",1,"Unidad de prueba",1,"Línea de prueba",1,"¿Qué tan efectivamente se realizan las reuniones diarias, el proceso de escalamiento de problemas y la priorización semanal de acciones en tu área?",1,"Manufacturing Strategy",3,"Todo bien","2026-01-27 14:16:33.569602"
+9,1,"Angel Solis",1,"Unidad de prueba",1,"Línea de prueba",2,"¿Qué tan efectivamente se realizan las reuniones diarias con operadores, se aplican las reglas de paro de línea, y se revisan semanalmente los datos para priorizar acciones?",1,"Manufacturing Strategy",2,"Falta seguimiento","2026-01-27 14:16:33.569602"

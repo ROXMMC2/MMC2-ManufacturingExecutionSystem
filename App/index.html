@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Model Line</title>
+
+  <!-- Bootstrap -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <!-- Font Awesome -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+
+  <!-- Tu CSS -->
+  <link rel="stylesheet" href="../CSS/style.css?v=400" />
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar-custom">
+      <div class="sidebar-top">
+        <div class="brand-box">
+          <div class="brand-icon">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+
+          <div class="brand-text">
+            <h3>Model Line</h3>
+            <p>Sistema de gestión</p>
+          </div>
+        </div>
+
+        <button id="toggleSidebar" class="sidebar-toggle" type="button" aria-label="Abrir/cerrar menú">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+
+      <!-- USUARIO -->
+      <div class="user-chip">
+        <div id="sidebarUserName" class="user-chip-name">Usuario</div>
+        <div id="sidebarUserRole" class="user-chip-role">Usuario</div>
+      </div>
+
+      <hr class="sidebar-divider" />
+
+      <nav class="sidebar-menu">
+        <a href="index.html" class="sidebar-link active">
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-house"></i>
+          </span>
+          <span class="sidebar-link-text">Inicio</span>
+        </a>
+
+        <a href="Auditoria.html" class="sidebar-link">
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-clipboard-check"></i>
+          </span>
+          <span class="sidebar-link-text">Nueva Auditoría</span>
+        </a>
+
+        <!-- REPORTS (BOTÓN DESPLEGABLE) -->
+      <div class="sidebar-link-group reports-menu-group">
+
+        <!-- BOTÓN PRINCIPAL (NO NAVEGA) -->
+        <button
+          type="button"
+          id="btnReportsToggle"
+          class="sidebar-link sidebar-link-button"
+        >
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-chart-line"></i>
+          </span>
+          <span class="sidebar-link-text">Reportes</span>
+          <span class="sidebar-link-caret">
+            <i class="fa-solid fa-chevron-down"></i>
+          </span>
+        </button>
+
+        <!-- SUBMENÚ -->
+        <div id="reportsSubmenu" class="sidebar-submenu">
+
+          <a href="Reportes.html" class="sidebar-sublink">
+            <span class="sidebar-sublink-icon">
+              <i class="fa-solid fa-table-list"></i>
+            </span>
+            <span>Reportes</span>
+          </a>
+
+          <a href="ActionPlan.html" class="sidebar-sublink">
+            <span class="sidebar-sublink-icon">
+              <i class="fa-solid fa-list-check"></i>
+            </span>
+            <span>Plan de Acción</span>
+          </a>
+
+        </div>
+      </div>
+        <a href="PowerBi.html" class="sidebar-link">
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-chart-pie"></i>
+          </span>
+          <span class="sidebar-link-text">Análisis de Datos</span>
+        </a>
+
+        <a href="Configuracion.html" class="sidebar-link" id="menuSettings" data-admin-only="true">
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-gear"></i>
+          </span>
+          <span class="sidebar-link-text">Configuración</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <a href="#" class="sidebar-link" id="btnLogout">
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </span>
+          <span class="sidebar-link-text">Cerrar sesión</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Overlay para móvil -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- CONTENIDO -->
+    <main class="page-content">
+      <div class="main-card">
+        <!-- TOPBAR -->
+        <div class="topbar">
+          <div class="topbar-logo">
+            <img src="../Images/ROX 6 (1).png" alt="ROX Logo" width="90" />
+          </div>
+
+          <div class="topbar-title">Model Line</div>
+
+          <div class="topbar-logo justify-content-end">
+            <img
+              src="../Images/RA_Logo_Bug-LeftText_rgb.png"
+              alt="Rockwell Automation Logo"
+              width="150"
+            />
+          </div>
+        </div>
+
+        <!-- HERO -->
+        <section class="hero-section">
+          <div class="row align-items-center g-4">
+            <!-- TEXTO -->
+            <div class="col-lg-5">
+              <h1 class="big-title">
+                <span>Model Line</span>
+              </h1>
+
+              <p class="hero-text">
+                Sistema de gestión y auditoría inteligente para procesos industriales.
+              </p>
+
+              <div class="hero-actions">
+                <a href="Auditoria.html" class="btn-secondary-soft">
+                  Ir a auditoría
+                </a>
+              </div>
+            </div>
+
+            <!-- CARRUSEL -->
+            <div class="col-lg-7">
+              <div
+                id="carouselExampleFade"
+                class="carousel slide carousel-fade hero-carousel"
+                data-bs-ride="carousel"
+              >
+                <div class="carousel-inner">
+                  <div class="carousel-item active">
+                    <img src="../Images/Rock1.jpg" alt="Imagen 1" />
+                  </div>
+
+                  <div class="carousel-item">
+                    <img src="../Images/Rock3.jpg" alt="Imagen 2" />
+                  </div>
+
+                  <div class="carousel-item">
+                    <img src="../Images/Rock4.jpg" alt="Imagen 3" />
+                  </div>
+                </div>
+
+                <button
+                  class="carousel-control-prev"
+                  type="button"
+                  data-bs-target="#carouselExampleFade"
+                  data-bs-slide="prev"
+                >
+                  <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Anterior</span>
+                </button>
+
+                <button
+                  class="carousel-control-next"
+                  type="button"
+                  data-bs-target="#carouselExampleFade"
+                  data-bs-slide="next"
+                >
+                  <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Siguiente</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Bootstrap -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Tu JS -->
+  <script src="../JS/JavaScript.js"></script>
+  <script src="../JS/auth.js"></script>
+</body>
+</html>
