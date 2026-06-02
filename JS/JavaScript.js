@@ -1,6 +1,4 @@
-// ======================================================
-// CONFIGURACIÓN API
-// ======================================================
+// ======================================================// ======================================================
 // En Azure debe quedarse vacío para que use el mismo dominio.
 // NO usar http://localhost:3000 en Azure.
 const API_BASE = "";
@@ -348,11 +346,16 @@ async function cargarCatalogosAuditoria() {
     try {
       data = JSON.parse(text);
     } catch (error) {
-      throw new Error("La respuesta de /api/catalogos no es JSON válido.");
+      console.error("La respuesta de /api/catalogos no es JSON válido:", error);
+      return;
     }
 
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || data.message || "No se pudieron cargar los catálogos.");
+      console.error(
+        "No se pudieron cargar los catálogos:",
+        data.error || data.message || response.status
+      );
+      return;
     }
 
     businessUnits = Array.isArray(data.businessUnits) ? data.businessUnits : [];
@@ -362,10 +365,6 @@ async function cargarCatalogosAuditoria() {
     console.log("Production Lines cargadas:", productionLines);
   } catch (error) {
     console.error("Error cargando catálogos desde Azure SQL:", error);
-    alert(
-      "No se pudieron cargar Business Units y Production Lines desde el servidor.\n\n" +
-      "Detalle: " + error.message
-    );
     return;
   }
 
@@ -373,6 +372,7 @@ async function cargarCatalogosAuditoria() {
   // BUSINESS UNITS
   // ======================================================
   buSelect.innerHTML = "";
+
   const optionBUDefault = document.createElement("option");
   optionBUDefault.value = "";
   optionBUDefault.textContent = "Select a Business Unit";
@@ -1303,3 +1303,4 @@ async function inicializarCuestionarioDinamico() {
 document.addEventListener("DOMContentLoaded", function () {
   inicializarCuestionarioDinamico();
 });
+
