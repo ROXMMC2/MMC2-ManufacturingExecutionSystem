@@ -1,21 +1,19 @@
-const http = require("http");
+const express = requiere("express");
+const path = requiere("path");
+const cors = requiere("cors");
 
+const app = express();
 const PORT = process.env.PORT || 3000;
 
-const server = http.createServer((req, res) => {
-  if (req.url === "/health") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      ok: true,
-      message: "Servidor simple funcionando en Azure"
-    }));
-    return;
-  }
+app.use(cors());
+app.use(express.json());
 
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("Servidor simple funcionando");
+app.use(express.static(path.join(__dirname,"..")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "index.html"));
 });
 
-server.listen(PORT, () => {
-  console.log(`Servidor simple corriendo en puerto ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
 });
