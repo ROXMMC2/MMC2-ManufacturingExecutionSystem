@@ -1,23 +1,77 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../db");
-// GET /api/business-units
-router.get("/business-units", async (req, res) => {
+
+const { sql, getPool } = require("../db");
+
+// ======================================================
+// GET /api/catalogos
+// Devuelve Business Units y Production Lines juntas
+// ======================================================
+router.get("/catalogos", async (req, res) => {
   try {
-    const result = await pool.query(`
+    const pool = await getPool();
+
+    const businessUnitsResult = await pool.request().query(`
       SELECT
         idbusinessunit,
         nombre
-      FROM businessunit
+      FROM dbo.businessunit
       ORDER BY nombre ASC
     `);
 
-    res.json(result.rows);
+    const productionLinesResult = await pool.request().query(`
+      SELECT
+        p.idproductionline,
+        p.nombre,
+        p.idbusinessunit,
+        b.nombre AS businessunit
+      FROM dbo.productionline p
+      INNER JOIN dbo.businessunit b
+        ON p.idbusinessunit = b.idbusinessunit
+      ORDER BY b.idbusinessunit ASC, p.nombre ASC
+    `);
+
+    res.json({
+      ok: true,
+      businessUnits: businessUnitsResult.recordset,
+      productionLines: productionLinesResult.recordset
+    });
   } catch (error) {
-    console.error("❌ Error obteniendo Business Units:", error);
+    console.error("❌ Error obteniendo catálogos:", error);
+
     res.status(500).json({
       ok: false,
-      error: "Error obteniendo Business Units"
+      error: "Error obteniendo catálogos",
+      detalle: error.message
+    });
+  }
+});
+
+// ======================================================
+// BUSINESS UNITS
+// ======================================================
+
+// GET /api/business-units
+router.get("/business-units", async (req, res) => {
+  try {
+    const pool = await getPool();
+
+    const result = await pool.request().query(`
+      SELECT
+        idbusinessunit,
+        nombre
+      FROM dbo.businessunit
+      ORDER BY nombre ASC
+    `);
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("❌ Error obteniendo Business Units:", error);
+
+    res.status(500).json({
+      ok: false,
+      error: "Error obteniendo Business Units",
+      detalle: error.message
     });
   }
 });
@@ -25,7 +79,7 @@ router.get("/business-units", async (req, res) => {
 // POST /api/business-units
 router.post("/business-units", async (req, res) => {
   try {
-    const nombre = String(req.body.nombre || "").trim();
+    const nombre = String(req.body.nombre || req.body.Nombre || "").trim();
 
     if (!nombre) {
       return res.status(400).json({
@@ -34,42 +88,48 @@ router.post("/business-units", async (req, res) => {
       });
     }
 
-    const duplicated = await pool.query(
-      `
-      SELECT idbusinessunit
-      FROM businessunit
-      WHERE LOWER(nombre) = LOWER($1)
-      LIMIT 1
-      `,
-      [nombre]
-    );
+    const pool = await getPool();
 
-    if (duplicated.rows.length > 0) {
+    const duplicated = await pool
+      .request()
+      .input("nombre", sql.NVarChar(100), nombre)
+      .query(`
+        SELECT TOP 1
+          idbusinessunit
+        FROM dbo.businessunit
+        WHERE LOWER(nombre) = LOWER(@nombre)
+      `);
+
+    if (duplicated.recordset.length > 0) {
       return res.status(409).json({
         ok: false,
         error: "Ya existe una Business Unit con ese nombre."
       });
     }
 
-    const result = await pool.query(
-      `
-      INSERT INTO businessunit (nombre)
-      VALUES ($1)
-      RETURNING idbusinessunit, nombre
-      `,
-      [nombre]
-    );
+    const result = await pool
+      .request()
+      .input("nombre", sql.NVarChar(100), nombre)
+      .query(`
+        INSERT INTO dbo.businessunit (nombre)
+        OUTPUT
+          INSERTED.idbusinessunit,
+          INSERTED.nombre
+        VALUES (@nombre)
+      `);
 
     res.status(201).json({
       ok: true,
       message: "Business Unit creada correctamente.",
-      businessUnit: result.rows[0]
+      businessUnit: result.recordset[0]
     });
   } catch (error) {
     console.error("❌ Error creando Business Unit:", error);
+
     res.status(500).json({
       ok: false,
-      error: "Error creando Business Unit"
+      error: "Error creando Business Unit",
+      detalle: error.message
     });
   }
 });
@@ -77,8 +137,15 @@ router.post("/business-units", async (req, res) => {
 // PUT /api/business-units/:id
 router.put("/business-units/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    const nombre = String(req.body.nombre || "").trim();
+    const id = Number(req.params.id);
+    const nombre = String(req.body.nombre || req.body.Nombre || "").trim();
+
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({
+        ok: false,
+        error: "ID de Business Unit inválido."
+      });
+    }
 
     if (!nombre) {
       return res.status(400).json({
@@ -87,61 +154,69 @@ router.put("/business-units/:id", async (req, res) => {
       });
     }
 
-    const existe = await pool.query(
-      `
-      SELECT idbusinessunit
-      FROM businessunit
-      WHERE idbusinessunit = $1
-      LIMIT 1
-      `,
-      [id]
-    );
+    const pool = await getPool();
 
-    if (existe.rows.length === 0) {
+    const existe = await pool
+      .request()
+      .input("idbusinessunit", sql.Int, id)
+      .query(`
+        SELECT TOP 1
+          idbusinessunit
+        FROM dbo.businessunit
+        WHERE idbusinessunit = @idbusinessunit
+      `);
+
+    if (existe.recordset.length === 0) {
       return res.status(404).json({
         ok: false,
         error: "La Business Unit no existe."
       });
     }
 
-    const duplicated = await pool.query(
-      `
-      SELECT idbusinessunit
-      FROM businessunit
-      WHERE LOWER(nombre) = LOWER($1)
-        AND idbusinessunit <> $2
-      LIMIT 1
-      `,
-      [nombre, id]
-    );
+    const duplicated = await pool
+      .request()
+      .input("nombre", sql.NVarChar(100), nombre)
+      .input("idbusinessunit", sql.Int, id)
+      .query(`
+        SELECT TOP 1
+          idbusinessunit
+        FROM dbo.businessunit
+        WHERE LOWER(nombre) = LOWER(@nombre)
+          AND idbusinessunit <> @idbusinessunit
+      `);
 
-    if (duplicated.rows.length > 0) {
+    if (duplicated.recordset.length > 0) {
       return res.status(409).json({
         ok: false,
         error: "Ya existe otra Business Unit con ese nombre."
       });
     }
 
-    const result = await pool.query(
-      `
-      UPDATE businessunit
-      SET nombre = $1
-      WHERE idbusinessunit = $2
-      RETURNING idbusinessunit, nombre
-      `,
-      [nombre, id]
-    );
+    const result = await pool
+      .request()
+      .input("idbusinessunit", sql.Int, id)
+      .input("nombre", sql.NVarChar(100), nombre)
+      .query(`
+        UPDATE dbo.businessunit
+        SET nombre = @nombre
+        OUTPUT
+          INSERTED.idbusinessunit,
+          INSERTED.nombre
+        WHERE idbusinessunit = @idbusinessunit
+      `);
 
     res.json({
       ok: true,
       message: "Business Unit actualizada correctamente.",
-      businessUnit: result.rows[0]
+      businessUnit: result.recordset[0]
     });
   } catch (error) {
     console.error("❌ Error actualizando Business Unit:", error);
+
     res.status(500).json({
       ok: false,
-      error: "Error actualizando Business Unit"
+      error: "Error actualizando Business Unit",
+      detalle: error.message
     });
   }
 });
@@ -149,35 +224,44 @@ router.put("/business-units/:id", async (req, res) => {
 // DELETE /api/business-units/:id
 router.delete("/business-units/:id", async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
 
-    const related = await pool.query(
-      `
-      SELECT idproductionline
-      FROM productionline
-      WHERE idbusinessunit = $1
-      LIMIT 1
-      `,
-      [id]
-    );
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({
+        ok: false,
+        error: "ID de Business Unit inválido."
+      });
+    }
 
-    if (related.rows.length > 0) {
+    const pool = await getPool();
+
+    const related = await pool
+      .request()
+      .input("idbusinessunit", sql.Int, id)
+      .query(`
+        SELECT TOP 1
+          idproductionline
+        FROM dbo.productionline
+        WHERE idbusinessunit = @idbusinessunit
+      `);
+
+    if (related.recordset.length > 0) {
       return res.status(409).json({
         ok: false,
         error: "No puedes eliminar esta Business Unit porque tiene Production Lines asociadas."
       });
     }
 
-    const result = await pool.query(
-      `
-      DELETE FROM businessunit
-      WHERE idbusinessunit = $1
-      RETURNING idbusinessunit
-      `,
-      [id]
-    );
+    const result = await pool
+      .request()
+      .input("idbusinessunit", sql.Int, id)
+      .query(`
+        DELETE FROM dbo.businessunit
+        OUTPUT DELETED.idbusinessunit
+        WHERE idbusinessunit = @idbusinessunit
+      `);
 
-    if (result.rows.length === 0) {
+    if (result.recordset.length === 0) {
       return res.status(404).json({
         ok: false,
         error: "La Business Unit no existe."
@@ -190,9 +274,11 @@ router.delete("/business-units/:id", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error eliminando Business Unit:", error);
+
     res.status(500).json({
       ok: false,
-      error: "Error eliminando Business Unit"
+      error: "Error eliminando Business Unit",
+      detalle: error.message
     });
   }
 });
@@ -204,29 +290,32 @@ router.delete("/business-units/:id", async (req, res) => {
 // GET /api/production-lines
 router.get("/production-lines", async (req, res) => {
   try {
-    const result = await pool.query(`
+    const pool = await getPool();
+
+    const result = await pool.request().query(`
       SELECT
         p.idproductionline,
         p.nombre,
         p.idbusinessunit,
         b.nombre AS businessunit
-      FROM productionline p
-      INNER JOIN businessunit b
+      FROM dbo.productionline p
+      INNER JOIN dbo.businessunit b
         ON p.idbusinessunit = b.idbusinessunit
       ORDER BY b.idbusinessunit ASC, p.nombre ASC
     `);
 
-    res.json(result.rows);
+    res.json(result.recordset);
   } catch (error) {
     console.error("❌ Error obteniendo Production Lines:", error);
+
     res.status(500).json({
       ok: false,
-      error: "Error obteniendo Production Lines"
+      error: "Error obteniendo Production Lines",
+      detalle: error.message
     });
   }
 });
 
-// POST /api/production-lines
 // POST /api/production-lines
 router.post("/production-lines", async (req, res) => {
   try {
@@ -254,65 +343,67 @@ router.post("/production-lines", async (req, res) => {
       });
     }
 
-    // Verificar que exista la BU
-    const buExiste = await pool.query(
-      `
-      SELECT idbusinessunit
-      FROM businessunit
-      WHERE idbusinessunit = $1
-      LIMIT 1
-      `,
-      [idbusinessunit]
-    );
+    const pool = await getPool();
 
-    if (buExiste.rows.length === 0) {
+    const buExiste = await pool
+      .request()
+      .input("idbusinessunit", sql.Int, idbusinessunit)
+      .query(`
+        SELECT TOP 1
+          idbusinessunit
+        FROM dbo.businessunit
+        WHERE idbusinessunit = @idbusinessunit
+      `);
+
+    if (buExiste.recordset.length === 0) {
       return res.status(404).json({
         ok: false,
         error: "La Business Unit seleccionada no existe."
       });
     }
 
-    // Validar duplicados dentro de la misma BU
-    const duplicated = await pool.query(
-      `
-      SELECT idproductionline
-      FROM productionline
-      WHERE LOWER(nombre) = LOWER($1)
-        AND idbusinessunit = $2
-      LIMIT 1
-      `,
-      [nombre, idbusinessunit]
-    );
+    const duplicated = await pool
+      .request()
+      .input("nombre", sql.NVarChar(100), nombre)
+      .input("idbusinessunit", sql.Int, idbusinessunit)
+      .query(`
+        SELECT TOP 1
+          idproductionline
+        FROM dbo.productionline
+        WHERE LOWER(nombre) = LOWER(@nombre)
+          AND idbusinessunit = @idbusinessunit
+      `);
 
-    if (duplicated.rows.length > 0) {
+    if (duplicated.recordset.length > 0) {
       return res.status(409).json({
         ok: false,
         error: "Ya existe una Production Line con ese nombre dentro de esa Business Unit."
       });
     }
 
-    // Asegurar secuencia antes del insert
-    await pool.query(`
-      SELECT setval(
-        pg_get_serial_sequence('productionline', 'idproductionline'),
-        COALESCE((SELECT MAX(idproductionline) FROM productionline), 1),
-        true
-      )
-    `);
-
-    const result = await pool.query(
-      `
-      INSERT INTO productionline (nombre, idbusinessunit)
-      VALUES ($1, $2)
-      RETURNING idproductionline, nombre, idbusinessunit
-      `,
-      [nombre, idbusinessunit]
-    );
+    const result = await pool
+      .request()
+      .input("nombre", sql.NVarChar(100), nombre)
+      .input("idbusinessunit", sql.Int, idbusinessunit)
+      .query(`
+        INSERT INTO dbo.productionline (
+          nombre,
+          idbusinessunit
+        )
+        OUTPUT
+          INSERTED.idproductionline,
+          INSERTED.nombre,
+          INSERTED.idbusinessunit
+        VALUES (
+          @nombre,
+          @idbusinessunit
+        )
+      `);
 
     res.status(201).json({
       ok: true,
       message: "Production Line creada correctamente.",
-      productionLine: result.rows[0]
+      productionLine: result.recordset[0]
     });
   } catch (error) {
     console.error("❌ Error creando Production Line:", error);
@@ -322,21 +413,36 @@ router.post("/production-lines", async (req, res) => {
       error: "Error creando Production Line",
       detalle: error.message,
       codigo: error.code || null,
-      constraint: error.constraint || null,
-      detail: error.detail || null,
-      table: error.table || null,
-      column: error.column || null
+      number: error.number || null,
+      state: error.state || null,
+      class: error.class || null,
+      serverName: error.serverName || null,
+      procName: error.procName || null,
+      lineNumber: error.lineNumber || null
     });
   }
 });
 
-
 // PUT /api/production-lines/:id
 router.put("/production-lines/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    const nombre = String(req.body.nombre || "").trim();
-    const idbusinessunit = Number(req.body.idbusinessunit);
+    const id = Number(req.params.id);
+    const nombre = String(req.body.nombre || req.body.Nombre || "").trim();
+
+    const idbusinessunitRaw =
+      req.body.idbusinessunit ??
+      req.body.idBusinessUnit ??
+      req.body.businessUnitId ??
+      req.body.IdBusinessUnit;
+
+    const idbusinessunit = Number(idbusinessunitRaw);
+
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({
+        ok: false,
+        error: "ID de Production Line inválido."
+      });
+    }
 
     if (!nombre) {
       return res.status(400).json({
@@ -345,87 +451,99 @@ router.put("/production-lines/:id", async (req, res) => {
       });
     }
 
-    if (Number.isNaN(idbusinessunit)) {
+    if (!Number.isFinite(idbusinessunit) || idbusinessunit <= 0) {
       return res.status(400).json({
         ok: false,
         error: "La Business Unit es obligatoria."
       });
     }
 
-    const existe = await pool.query(
-      `
-      SELECT idproductionline
-      FROM productionline
-      WHERE idproductionline = $1
-      LIMIT 1
-      `,
-      [id]
-    );
+    const pool = await getPool();
 
-    if (existe.rows.length === 0) {
+    const existe = await pool
+      .request()
+      .input("idproductionline", sql.Int, id)
+      .query(`
+        SELECT TOP 1
+          idproductionline
+        FROM dbo.productionline
+        WHERE idproductionline = @idproductionline
+      `);
+
+    if (existe.recordset.length === 0) {
       return res.status(404).json({
         ok: false,
         error: "La Production Line no existe."
       });
     }
 
-    const buExiste = await pool.query(
-      `
-      SELECT idbusinessunit
-      FROM businessunit
-      WHERE idbusinessunit = $1
-      LIMIT 1
-      `,
-      [idbusinessunit]
-    );
+    const buExiste = await pool
+      .request()
+      .input("idbusinessunit", sql.Int, idbusinessunit)
+      .query(`
+        SELECT TOP 1
+          idbusinessunit
+        FROM dbo.businessunit
+        WHERE idbusinessunit = @idbusinessunit
+      `);
 
-    if (buExiste.rows.length === 0) {
+    if (buExiste.recordset.length === 0) {
       return res.status(404).json({
         ok: false,
         error: "La Business Unit seleccionada no existe."
       });
     }
 
-    const duplicated = await pool.query(
-      `
-      SELECT idproductionline
-      FROM productionline
-      WHERE LOWER(nombre) = LOWER($1)
-        AND idbusinessunit = $2
-        AND idproductionline <> $3
-      LIMIT 1
-      `,
-      [nombre, idbusinessunit, id]
-    );
+    const duplicated = await pool
+      .request()
+      .input("nombre", sql.NVarChar(100), nombre)
+      .input("idbusinessunit", sql.Int, idbusinessunit)
+      .input("idproductionline", sql.Int, id)
+      .query(`
+        SELECT TOP 1
+          idproductionline
+        FROM dbo.productionline
+        WHERE LOWER(nombre) = LOWER(@nombre)
+          AND idbusinessunit = @idbusinessunit
+          AND idproductionline <> @idproductionline
+      `);
 
-    if (duplicated.rows.length > 0) {
+    if (duplicated.recordset.length > 0) {
       return res.status(409).json({
         ok: false,
         error: "Ya existe otra Production Line con ese nombre dentro de esa Business Unit."
       });
     }
 
-    const result = await pool.query(
-      `
-      UPDATE productionline
-      SET nombre = $1,
-          idbusinessunit = $2
-      WHERE idproductionline = $3
-      RETURNING idproductionline, nombre, idbusinessunit
-      `,
-      [nombre, idbusinessunit, id]
-    );
+    const result = await pool
+      .request()
+      .input("idproductionline", sql.Int, id)
+      .input("nombre", sql.NVarChar(100), nombre)
+      .input("idbusinessunit", sql.Int, idbusinessunit)
+      .query(`
+        UPDATE dbo.productionline
+        SET
+          nombre = @nombre,
+          idbusinessunit = @idbusinessunit
+        OUTPUT
+          INSERTED.idproductionline,
+          INSERTED.nombre,
+          INSERTED.idbusinessunit
+        WHERE idproductionline = @idproductionline
+      `);
 
     res.json({
       ok: true,
       message: "Production Line actualizada correctamente.",
-      productionLine: result.rows[0]
+      productionLine: result.recordset[0]
     });
   } catch (error) {
     console.error("❌ Error actualizando Production Line:", error);
+
     res.status(500).json({
       ok: false,
-      error: "Error actualizando Production Line"
+      error: "Error actualizando Production Line",
+      detalle: error.message
     });
   }
 });
@@ -433,18 +551,27 @@ router.put("/production-lines/:id", async (req, res) => {
 // DELETE /api/production-lines/:id
 router.delete("/production-lines/:id", async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
 
-    const result = await pool.query(
-      `
-      DELETE FROM productionline
-      WHERE idproductionline = $1
-      RETURNING idproductionline
-      `,
-      [id]
-    );
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({
+        ok: false,
+        error: "ID de Production Line inválido."
+      });
+    }
 
-    if (result.rows.length === 0) {
+    const pool = await getPool();
+
+    const result = await pool
+      .request()
+      .input("idproductionline", sql.Int, id)
+      .query(`
+        DELETE FROM dbo.productionline
+        OUTPUT DELETED.idproductionline
+        WHERE idproductionline = @idproductionline
+      `);
+
+    if (result.recordset.length === 0) {
       return res.status(404).json({
         ok: false,
         error: "La Production Line no existe."
@@ -458,7 +585,7 @@ router.delete("/production-lines/:id", async (req, res) => {
   } catch (error) {
     console.error("❌ Error eliminando Production Line:", error);
 
-    if (error.code === "23503") {
+    if (error.number === 547) {
       return res.status(409).json({
         ok: false,
         error: "No se puede eliminar la Production Line porque ya está relacionada con auditorías u otros registros."
@@ -467,10 +594,10 @@ router.delete("/production-lines/:id", async (req, res) => {
 
     res.status(500).json({
       ok: false,
-      error: "Error eliminando Production Line"
+      error: "Error eliminando Production Line",
+      detalle: error.message
     });
   }
 });
 
 module.exports = router;
-
