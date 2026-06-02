@@ -1,3 +1,6 @@
+// ======================================================
+// CONFIGURACIÓN API
+// ======================================================
 // En Azure debe quedarse vacío para que use el mismo dominio.
 // NO usar http://localhost:3000 en Azure.
 const API_BASE = "";
@@ -41,11 +44,7 @@ document.addEventListener("DOMContentLoaded", function () {
           })
         });
 
-
-
-// ======================================================
-// CONFIGURACIÓN API
-// =================================================        const text = await response.text();// ======================================================
+        const text = await response.text();
         let data = {};
 
         try {
@@ -115,7 +114,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
           console.log("Usuario guardado en localStorage:", userData);
 
-          // Limpieza de sesiones anteriores
           localStorage.removeItem("usuario");
           localStorage.removeItem("usuarioActual");
           localStorage.removeItem("usuarioLogueado");
@@ -123,10 +121,8 @@ document.addEventListener("DOMContentLoaded", function () {
           localStorage.removeItem("loginUser");
           localStorage.removeItem("sessionUser");
 
-          // Mantener compatibilidad con tu código actual
           localStorage.setItem("user", JSON.stringify(userData));
 
-          // Sesión oficial para auth.js
           localStorage.setItem("currentUser", JSON.stringify({
             id: userData.id,
             name: userData.nombre,
@@ -179,9 +175,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ======================================================
   // SUBMENÚ REPORTS EN SIDEBAR
-  // Reports NO redirige, solo despliega.
-  // Reportes -> Reportes.html
-  // Plan de Acción -> ActionPlan.html
   // ======================================================
   const btnReportsToggle = document.getElementById("btnReportsToggle");
   const reportsSubmenu = document.getElementById("reportsSubmenu");
@@ -280,7 +273,8 @@ function getFechaHoraLocal() {
 
 // ======================================================
 // APP CONFIG
-// Se deja por compatibilidad, pero Auditoría ya no depende de esto.
+// Se deja por compatibilidad.
+// Auditoría ya NO depende de localStorage.appConfig.
 // ======================================================
 function getAppConfigSeguro() {
   try {
@@ -335,8 +329,6 @@ async function cargarCatalogosAuditoria() {
     return;
   }
 
-  const currentUser = getCurrentUserSeguro();
-
   let businessUnits = [];
   let productionLines = [];
 
@@ -346,16 +338,18 @@ async function cargarCatalogosAuditoria() {
       cache: "no-store"
     });
 
+    console.log("STATUS /api/catalogos:", response.status);
+
     const text = await response.text();
+    console.log("RESPUESTA /api/catalogos:", text);
+
     let data = {};
 
     try {
       data = JSON.parse(text);
     } catch (error) {
-      throw new Error(text || "La respuesta de /api/catalogos no es JSON válido.");
+      throw new Error("La respuesta de /api/catalogos no es JSON válido.");
     }
-
-    console.log("📥 Catálogos desde Azure SQL:", data);
 
     if (!response.ok || !data.ok) {
       throw new Error(data.error || data.message || "No se pudieron cargar los catálogos.");
@@ -363,30 +357,81 @@ async function cargarCatalogosAuditoria() {
 
     businessUnits = Array.isArray(data.businessUnits) ? data.businessUnits : [];
     productionLines = Array.isArray(data.productionLines) ? data.productionLines : [];
+
+    console.log("Business Units cargadas:", businessUnits);
+    console.log("Production Lines cargadas:", productionLines);
   } catch (error) {
-    console.error("❌ Error cargando catálogos desde Azure SQL:", error);
-    alert("No se pudieron cargar Business Units y Production Lines desde el servidor.");
+    console.error("Error cargando catálogos desde Azure SQL:", error);
+    alert(
+      "No se pudieron cargar Business Units y Production Lines desde el servidor.\n\n" +
+      "Detalle: " + error.message
+    );
     return;
   }
 
   // ======================================================
   // BUSINESS UNITS
   // ======================================================
-  buSelect.innerHTML = `
-    <option value="">Select a Business Unit</option>
-    ${businessUnits
-      .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")))
-      .map(bu => `
-        <option value="${bu.idbusinessunit}">
-          ${bu.nombre}
-        </option>
-      `)
-      .join("")}
-  `;
+  buSelect.innerHTML = "";
+  const optionBUDefault = document.createElement("option");
+  optionBUDefault.value = "";
+  optionBUDefault.textContent = "Select a Business Unit";
+  buSelect.appendChild(optionBUDefault);
+
+  businessUnits
+    .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")))
+    .forEach(function (bu) {
+      const option = document.createElement("option");
+      option.value = bu.idbusinessunit;
+      option.textContent = bu.nombre;
+      buSelect.appendChild(option);
+    });
+
+  // ======================================================
+  // PRODUCTION LINES
+  // ======================================================
+  function cargarProductionLinesPorBU(businessUnitId) {
+    lineSelect.innerHTML = "";
+
+    const optionLineDefault = document.createElement("option");
+    optionLineDefault.value = "";
+    optionLineDefault.textContent = "Select a Production Line";
+    lineSelect.appendChild(optionLineDefault);
+
+    if (!businessUnitId) {
+      lineSelect.disabled = true;
+      return;
+    }
+
+    const lines = productionLines
+      .filter(function (pl) {
+        return String(pl.idbusinessunit) === String(businessUnitId);
+      })
+      .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")));
+
+    lines.forEach(function (pl) {
+      const option = document.createElement("option");
+      option.value = pl.idproductionline;
+      option.textContent = pl.nombre;
+      lineSelect.appendChild(option);
+    });
+
+    lineSelect.disabled = false;
+  }
+
+  buSelect.addEventListener("change", function () {
+    cargarProductionLinesPorBU(this.value);
+  });
+
+  cargarProductionLinesPorBU("");
 
   // ======================================================
   // REVIEWER = USUARIO LOGUEADO
   // ======================================================
+  const currentUser = getCurrentUserSeguro();
+
+  reviewerSelect.innerHTML = "";
+
   if (currentUser) {
     const currentUserId =
       currentUser.id ||
@@ -401,53 +446,21 @@ async function cargarCatalogosAuditoria() {
       currentUser.usuario ||
       "Usuario";
 
-    reviewerSelect.innerHTML = `
-      <option value="${currentUserId}" selected>
-        ${currentUserName}
-      </option>
-    `;
+    const optionReviewer = document.createElement("option");
+    optionReviewer.value = currentUserId;
+    optionReviewer.textContent = currentUserName;
+    optionReviewer.selected = true;
 
+    reviewerSelect.appendChild(optionReviewer);
     reviewerSelect.disabled = true;
   } else {
-    reviewerSelect.innerHTML = `
-      <option value="">No reviewer available</option>
-    `;
+    const optionReviewer = document.createElement("option");
+    optionReviewer.value = "";
+    optionReviewer.textContent = "No reviewer available";
+
+    reviewerSelect.appendChild(optionReviewer);
+    reviewerSelect.disabled = true;
   }
-
-  // ======================================================
-  // PRODUCTION LINES SEGÚN BUSINESS UNIT
-  // ======================================================
-  function cargarProductionLinesPorBU(businessUnitId) {
-    if (!businessUnitId) {
-      lineSelect.innerHTML = `<option value="">Select a Production Line</option>`;
-      lineSelect.disabled = true;
-      return;
-    }
-
-    const lines = productionLines
-      .filter(pl => String(pl.idbusinessunit) === String(businessUnitId))
-      .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")));
-
-    lineSelect.innerHTML = `
-      <option value="">Select a Production Line</option>
-      ${lines
-        .map(pl => `
-          <option value="${pl.idproductionline}">
-            ${pl.nombre}
-          </option>
-        `)
-        .join("")}
-    `;
-
-    lineSelect.disabled = false;
-  }
-
-  buSelect.addEventListener("change", function () {
-    cargarProductionLinesPorBU(this.value);
-  });
-
-  lineSelect.innerHTML = `<option value="">Select a Production Line</option>`;
-  lineSelect.disabled = true;
 }
 
 // ======================================================
@@ -596,8 +609,8 @@ function validarPreguntasFinal(preguntas, idModulo) {
 
   const modulos = JSON.parse(localStorage.getItem("modulos") || "[]");
 
-  console.log("📦 Módulos guardados:", modulos);
-  console.log("📊 Cantidad de módulos:", modulos.length);
+  console.log("Módulos guardados:", modulos);
+  console.log("Cantidad de módulos:", modulos.length);
 
   if (modulos.length < 6) {
     alert(`Aún no están completos los 6 módulos. Actualmente hay ${modulos.length}.`);
@@ -653,7 +666,7 @@ function mostrarMensajeExito() {
   const mensaje = document.getElementById("mensajeExito");
 
   if (!mensaje) {
-    console.error("❌ No existe #mensajeExito en el HTML.");
+    console.error("No existe #mensajeExito en el HTML.");
     alert("Mensaje entregado con éxito");
     window.location.href = "index.html";
     return;
@@ -695,8 +708,8 @@ async function guardarReview() {
   const info = JSON.parse(localStorage.getItem("reviewInfo"));
   const modulos = JSON.parse(localStorage.getItem("modulos"));
 
-  console.log("📌 reviewInfo:", info);
-  console.log("📌 modulos:", modulos);
+  console.log("reviewInfo:", info);
+  console.log("modulos:", modulos);
 
   if (!info) {
     alert("Error: No se encontraron los datos iniciales (reviewInfo).");
@@ -724,7 +737,7 @@ async function guardarReview() {
     respuestas: respuestas
   };
 
-  console.log("📤 Enviando al backend:", data);
+  console.log("Enviando al backend:", data);
 
   try {
     const res = await fetch(`${API_BASE}/reviews/guardar`, {
@@ -747,8 +760,8 @@ async function guardarReview() {
       };
     }
 
-    console.log("📥 Respuesta HTTP:", res.status);
-    console.log("📥 Respuesta servidor:", json);
+    console.log("Respuesta HTTP:", res.status);
+    console.log("Respuesta servidor:", json);
 
     if (res.ok && json.ok) {
       localStorage.removeItem("modulos");
@@ -757,7 +770,7 @@ async function guardarReview() {
       const mensaje = document.getElementById("mensajeExito");
 
       if (!mensaje) {
-        console.error("❌ No existe #mensajeExito en el HTML.");
+        console.error("No existe #mensajeExito en el HTML.");
         alert("La auditoría se guardó, pero no se encontró el modal.");
         return;
       }
@@ -771,7 +784,7 @@ async function guardarReview() {
       );
     }
   } catch (error) {
-    console.error("❌ Error al guardar review:", error);
+    console.error("Error al guardar review:", error);
     alert("Error de conexión con el servidor.");
   }
 }
@@ -833,7 +846,7 @@ document.addEventListener("DOMContentLoaded", function () {
         modalList.appendChild(li);
       });
     } catch (error) {
-      console.error("❌ Error al leer data-list:", error);
+      console.error("Error al leer data-list:", error);
     }
 
     modalBackdrop.classList.add("show");
@@ -935,7 +948,7 @@ const MODULE_PAGE_CONFIG = {
 };
 
 async function obtenerPreguntasDesdeBD() {
-  console.log("🔎 Intentando cargar preguntas desde /api/preguntas...");
+  console.log("Intentando cargar preguntas desde /api/preguntas...");
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
@@ -949,7 +962,7 @@ async function obtenerPreguntasDesdeBD() {
 
     clearTimeout(timeout);
 
-    console.log("📥 Status /api/preguntas:", res.status);
+    console.log("Status /api/preguntas:", res.status);
 
     const text = await res.text();
     let data = null;
@@ -968,7 +981,7 @@ async function obtenerPreguntasDesdeBD() {
       );
     }
 
-    console.log("📌 Respuesta cruda preguntas:", data);
+    console.log("Respuesta cruda preguntas:", data);
 
     if (!Array.isArray(data)) {
       throw new Error("La respuesta de preguntas no es un arreglo.");
@@ -1145,19 +1158,19 @@ function prepararContenedorPreguntasDinamicas() {
 }
 
 async function inicializarCuestionarioDinamico() {
-  console.log("🚀 Inicializando cuestionario dinámico...");
+  console.log("Inicializando cuestionario dinámico...");
 
   const configModulo = obtenerConfigModuloActual();
 
   if (!configModulo) {
-    console.log("ℹ️ Esta página no usa cuestionario dinámico.");
+    console.log("Esta página no usa cuestionario dinámico.");
     return;
   }
 
   const container = prepararContenedorPreguntasDinamicas();
 
   if (!container) {
-    console.error("❌ No existe .evaluation-wrapper ni #questionsContainer.");
+    console.error("No existe .evaluation-wrapper ni #questionsContainer.");
     return;
   }
 
@@ -1168,7 +1181,7 @@ async function inicializarCuestionarioDinamico() {
   const nextPage = String(configModulo.nextPage || "").trim();
   const isFinal = Boolean(configModulo.isFinal);
 
-  console.log("📌 Config módulo:", {
+  console.log("Config módulo:", {
     moduleId,
     moduleName,
     questionStart,
@@ -1230,7 +1243,7 @@ async function inicializarCuestionarioDinamico() {
       };
     });
 
-    console.log("✅ Preguntas filtradas para este módulo:", preguntasNormalizadasFinal);
+    console.log("Preguntas filtradas para este módulo:", preguntasNormalizadasFinal);
 
     if (!preguntasNormalizadasFinal.length) {
       container.innerHTML = `
@@ -1274,9 +1287,9 @@ async function inicializarCuestionarioDinamico() {
       };
     }
 
-    console.log("✅ Cuestionario dinámico cargado correctamente.");
+    console.log("Cuestionario dinámico cargado correctamente.");
   } catch (error) {
-    console.error("❌ Error cargando cuestionario dinámico:", error);
+    console.error("Error cargando cuestionario dinámico:", error);
 
     container.innerHTML = `
       <div class="alert alert-danger">
