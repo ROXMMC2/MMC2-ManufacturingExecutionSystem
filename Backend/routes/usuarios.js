@@ -29,21 +29,28 @@
     return undefined;
   }
 
-  // ======================================================
-  // GET /api/usuarios
-  // ======================================================
-  router.get("/usuarios", async (req, res) => {
-    try {
-      const lista = await obtenerUsuarios();
-      res.json(lista);
-    } catch (err) {
-      console.error("Error obteniendo usuarios:", err);
-      res.status(500).json({
-        ok: false,
-        error: "Error obteniendo usuarios"
-      });
-    }
-  });
+// ======================================================
+// GET /api/usuarios
+// ======================================================
+router.get("/usuarios", async (req, res) => {
+  try {
+    const lista = await obtenerUsuarios();
+    res.json(lista);
+  } catch (err) {
+    console.error("❌ ERROR REAL OBTENIENDO USUARIOS:", err);
+
+    res.status(500).json({
+      ok: false,
+      error: "Error obteniendo usuarios",
+      detalle: err.message,
+      codigo: err.code || null,
+      constraint: err.constraint || null,
+      detail: err.detail || null,
+      table: err.table || null,
+      column: err.column || null
+    });
+  }
+});
 
   // ======================================================
   // POST /api/usuarios
