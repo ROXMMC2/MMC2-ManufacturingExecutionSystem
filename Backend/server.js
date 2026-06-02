@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 // ===============================
 // HEALTH CHECK
 // ===============================
-// Lo dejamos arriba para probar rápido que Azure sí está ejecutando Node.
+// Sirve para validar que Azure sí está ejecutando Node correctamente.
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
@@ -23,11 +23,44 @@ app.get("/health", (req, res) => {
 });
 
 // ===============================
+// DB TEST - AZURE SQL DATABASE
+// ===============================
+// Sirve para probar conexión directa con Azure SQL Database.
+app.get("/db-test", async (req, res) => {
+  try {
+    const { getPool } = require("./db");
+
+    const pool = await getPool();
+
+    const result = await pool.request().query("SELECT GETDATE() AS now");
+
+    res.json({
+      ok: true,
+      message: "Conexión a Azure SQL Database exitosa",
+      now: result.recordset[0].now
+    });
+  } catch (error) {
+    console.error("❌ ERROR REAL DB TEST:", error);
+
+    res.status(500).json({
+      ok: false,
+      message: "Error conectando a Azure SQL Database",
+      detalle: error.message,
+      codigo: error.code || null,
+      number: error.number || null,
+      state: error.state || null,
+      class: error.class || null,
+      serverName: error.serverName || null,
+      procName: error.procName || null,
+      lineNumber: error.lineNumber || null
+    });
+  }
+});
+
+// ===============================
 // ARCHIVOS ESTÁTICOS FRONTEND
 // ===============================
-// IMPORTANTE:
 // En Azure, App, CSS, JS e Images deben quedar al mismo nivel que server.js.
-// Por eso usamos "App", "CSS", "JS", "Images" y NO "../App".
 app.use(express.static(path.join(__dirname, "App")));
 
 app.use("/CSS", express.static(path.join(__dirname, "CSS")));
@@ -60,7 +93,13 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "App", "index.html"), (err) => {
     if (err) {
       console.error("No se encontró App/index.html:", err.message);
-      res.status(404).send("No se encontró el frontend App/index.html en Azure");
+
+      res.status(404).send(`
+        <h1>No se encontró el frontend</h1>
+        <p>Azure está buscando el archivo:</p>
+        <pre>${path.join(__dirname, "App", "index.html")}</pre>
+        <p>Revisa que la carpeta App y el archivo index.html existan en C:\\home\\site\\wwwroot.</p>
+      `);
     }
   });
 });
@@ -68,6 +107,7 @@ app.get("/", (req, res) => {
 // ===============================
 // MANEJO DE RUTAS NO ENCONTRADAS
 // ===============================
+// Este bloque SIEMPRE debe ir después de todas las rutas.
 app.use((req, res) => {
   res.status(404).json({
     ok: false,
@@ -76,39 +116,6 @@ app.use((req, res) => {
   });
 });
 
-// ===============================
-// DB TEST - AZURE SQL DATABASE
-// ===============================
-app.get("/db-test", async (req, res) => {
-  try {
-    const { getPool } = require("./db");
-
-    const pool = await getPool();
-
-    const result = await pool.request().query("SELECT GETDATE() AS now");
-
-    res.json({
-      ok: true,
-      message: "Conexión a Azure SQL Database exitosa",
-      now: result.recordset[0].now
-    });
-  } catch (error) {
-    console.error("❌ ERROR REAL DB TEST:", error);
-
-    res.status(500).json({
-      ok: false,
-      message: "Error conectando a Azure SQL Database",
-      detalle: error.message,
-      codigo: error.code || null,
-      number: error.number || null,
-      state: error.state || null,
-      class: error.class || null,
-      serverName: error.serverName || null,
-      procName: error.procName || null,
-      lineNumber: error.lineNumber || null
-    });
-  }
-});
 // ===============================
 // START SERVER
 // ===============================

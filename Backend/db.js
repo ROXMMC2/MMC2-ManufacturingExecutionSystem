@@ -3,12 +3,12 @@ const sql = require("mssql");
 // ===============================
 // CONFIGURACIÓN AZURE SQL DATABASE
 // ===============================
-// Variables necesarias en Azure App Service:
-// SQL_SERVER
-// SQL_DATABASE
-// SQL_USER
-// SQL_PASSWORD
-// SQL_PORT
+// Estas variables deben estar configuradas en Azure App Service:
+// SQL_SERVER   = sqlsrv-modeline.database.windows.net
+// SQL_DATABASE = sqldb-modeline
+// SQL_USER     = modelinesqladmin
+// SQL_PASSWORD = tu password real
+// SQL_PORT     = 1433
 
 const config = {
   user: process.env.SQL_USER,
