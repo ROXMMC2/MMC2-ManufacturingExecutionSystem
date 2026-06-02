@@ -77,6 +77,39 @@ app.use((req, res) => {
 });
 
 // ===============================
+// DB TEST - AZURE SQL DATABASE
+// ===============================
+app.get("/db-test", async (req, res) => {
+  try {
+    const { getPool } = require("./db");
+
+    const pool = await getPool();
+
+    const result = await pool.request().query("SELECT GETDATE() AS now");
+
+    res.json({
+      ok: true,
+      message: "Conexión a Azure SQL Database exitosa",
+      now: result.recordset[0].now
+    });
+  } catch (error) {
+    console.error("❌ ERROR REAL DB TEST:", error);
+
+    res.status(500).json({
+      ok: false,
+      message: "Error conectando a Azure SQL Database",
+      detalle: error.message,
+      codigo: error.code || null,
+      number: error.number || null,
+      state: error.state || null,
+      class: error.class || null,
+      serverName: error.serverName || null,
+      procName: error.procName || null,
+      lineNumber: error.lineNumber || null
+    });
+  }
+});
+// ===============================
 // START SERVER
 // ===============================
 const PORT = process.env.PORT || 3000;
