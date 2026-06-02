@@ -1,4 +1,11 @@
-const API_BASE = "http://localhost:3000";
+// ======================================================
+// CONFIGURACIÓN API
+// ======================================================
+// En Azure debe quedarse vacío para que use el mismo dominio:
+// https://app-modeline.azurewebsites.net/api/login
+//
+// NO usar http://localhost:3000 en Azure.
+const API_BASE = "";
 
 // ======================================================
 // LOGIN + SIDEBAR + SUBMENÚ REPORTS
@@ -30,11 +37,26 @@ document.addEventListener("DOMContentLoaded", function () {
       try {
         const response = await fetch(`${API_BASE}/api/login`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ usuario, contrasena })
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            usuario,
+            contrasena
+          })
         });
 
-        const data = await response.json();
+        const text = await response.text();
+        let data = {};
+
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          data = {
+            ok: false,
+            error: text || "Respuesta inválida del servidor."
+          };
+        }
 
         console.log("Respuesta login:", data);
 
@@ -89,13 +111,18 @@ document.addEventListener("DOMContentLoaded", function () {
               usuarioBackend.email ||
               "",
 
-            rol: rol
+            rol
           };
 
           console.log("Usuario guardado en localStorage:", userData);
 
           // Limpieza de sesiones anteriores
           localStorage.removeItem("usuario");
+          localStorage.removeItem("usuarioActual");
+          localStorage.removeItem("usuarioLogueado");
+          localStorage.removeItem("loggedUser");
+          localStorage.removeItem("loginUser");
+          localStorage.removeItem("sessionUser");
 
           // Mantener compatibilidad con tu código actual
           localStorage.setItem("user", JSON.stringify(userData));
@@ -113,11 +140,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
           window.location.href = redirect || "index.html";
         } else {
-          alert(data.error || data.message || "Credenciales incorrectas");
+          alert(data.error || data.message || "Credenciales incorrectas.");
         }
       } catch (error) {
         console.error("Error en login:", error);
-        alert("No se pudo conectar con el servidor");
+        alert("No se pudo conectar con el servidor.");
       }
     });
   }
@@ -265,6 +292,7 @@ function getAppConfigSeguro() {
     };
   } catch (error) {
     console.error("Error leyendo appConfig:", error);
+
     return {
       questions: [],
       users: [],
@@ -306,8 +334,13 @@ function cargarCatalogosAuditoria() {
 
   const config = getAppConfigSeguro();
 
-  const businessUnits = Array.isArray(config.businessUnits) ? config.businessUnits : [];
-  const productionLines = Array.isArray(config.productionLines) ? config.productionLines : [];
+  const businessUnits = Array.isArray(config.businessUnits)
+    ? config.businessUnits
+    : [];
+
+  const productionLines = Array.isArray(config.productionLines)
+    ? config.productionLines
+    : [];
 
   const currentUser = getCurrentUserSeguro();
 
@@ -372,7 +405,8 @@ function cargarCatalogosAuditoria() {
 
     const lines = productionLines
       .filter(pl =>
-        String(pl.businessUnitId || pl.IdBusinessUnit || pl.idbusinessunit) === String(businessUnitId)
+        String(pl.businessUnitId || pl.IdBusinessUnit || pl.idbusinessunit) ===
+        String(businessUnitId)
       )
       .sort((a, b) =>
         String(a.name || a.nombre || "").localeCompare(
@@ -433,7 +467,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const value = field.value;
 
-      if (!value || value === "" || value.includes("Select") || value.includes("Open")) {
+      if (
+        !value ||
+        value === "" ||
+        value.includes("Select") ||
+        value.includes("Open")
+      ) {
         field.classList.add("is-invalid");
         valid = false;
       } else {
@@ -676,7 +715,9 @@ async function guardarReview() {
   try {
     const res = await fetch(`${API_BASE}/reviews/guardar`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify(data)
     });
 
@@ -686,7 +727,10 @@ async function guardarReview() {
     try {
       json = JSON.parse(text);
     } catch {
-      json = { ok: false, error: text };
+      json = {
+        ok: false,
+        error: text
+      };
     }
 
     console.log("📥 Respuesta HTTP:", res.status);
@@ -709,7 +753,7 @@ async function guardarReview() {
     } else {
       alert(
         "No se pudo guardar el review.\n\n" +
-        (json.error || "El backend rechazó la solicitud.")
+        (json.error || json.message || "El backend rechazó la solicitud.")
       );
     }
   } catch (error) {
@@ -893,11 +937,22 @@ async function obtenerPreguntasDesdeBD() {
 
     console.log("📥 Status /api/preguntas:", res.status);
 
-    if (!res.ok) {
-      throw new Error(`No se pudieron cargar las preguntas. HTTP ${res.status}`);
+    const text = await res.text();
+    let data = null;
+
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      throw new Error(text || "La respuesta de preguntas no es JSON válido.");
     }
 
-    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(
+        data.error ||
+        data.message ||
+        `No se pudieron cargar las preguntas. HTTP ${res.status}`
+      );
+    }
 
     console.log("📌 Respuesta cruda preguntas:", data);
 
@@ -1184,7 +1239,9 @@ async function inicializarCuestionarioDinamico() {
       .map(crearPreguntaHTML)
       .join("");
 
-    const numerosPreguntas = preguntasNormalizadasFinal.map(p => Number(p.numeroGlobal));
+    const numerosPreguntas = preguntasNormalizadasFinal.map(p =>
+      Number(p.numeroGlobal)
+    );
 
     let btnNext = document.getElementById("btnNextModule");
 
