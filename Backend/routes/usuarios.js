@@ -1,335 +1,381 @@
-const express = require("express");
-const router = express.Router();
-const { sql, getPool } = require("../db");
-// ======================================================
-// HELPERS
-// ======================================================
-function normalizeText(value) {
- return String(value || "").trim();
-}
-function normalizeRole(value) {
- const role = String(value || "").trim().toLowerCase();
- if (role === "administrador") return "admin";
- if (role === "administrator") return "admin";
- return role || "usuario";
-}
-function toInt(value) {
- const n = Number(value);
- if (!Number.isFinite(n)) {
-   return null;
- }
- return n;
-}
+  const express = require("express");
+  const router = express.Router();
+
+ const {
+  crearUsuario,
+  obtenerUsuarios,
+  obtenerUsuarioPorId,
+  obtenerUsuarioPorUsername,
+  actualizarUsuario,
+  eliminarUsuario,
+  loginUsuario,
+
+  obtenerActionPlans,
+  crearActionPlan,
+  actualizarActionPlan,
+  cerrarActionPlan,
+  eliminarActionPlan
+} = require("../queries");
+
+  // ======================================================
+  // HELPERS
+  // ======================================================
+  function pick(obj, ...keys) {
+    for (const key of keys) {
+      if (obj[key] !== undefined && obj[key] !== null) {
+        return obj[key];
+      }
+    }
+    return undefined;
+  }
+
 // ======================================================
 // GET /api/usuarios
-// Obtener usuarios
 // ======================================================
 router.get("/usuarios", async (req, res) => {
- try {
-   const pool = await getPool();
-   const result = await pool.request().query(`
-     SELECT
-       idusuario,
-       nombre,
-       usuario,
-       contrasena,
-       rol,
-       activo,
-       correo
-     FROM dbo.usuarios
-     ORDER BY idusuario ASC
-   `);
-   res.json(result.recordset);
- } catch (error) {
-   console.error("❌ Error obteniendo usuarios:", error);
-   res.status(500).json({
-     ok: false,
-     error: "Error obteniendo usuarios",
-     detalle: error.message,
-     number: error.number || null,
-     lineNumber: error.lineNumber || null
-   });
- }
+  try {
+    const lista = await obtenerUsuarios();
+    res.json(lista);
+  } catch (err) {
+    console.error("❌ ERROR REAL OBTENIENDO USUARIOS:", err);
+
+    res.status(500).json({
+      ok: false,
+      error: "Error obteniendo usuarios",
+      detalle: err.message,
+      codigo: err.code || null,
+      constraint: err.constraint || null,
+      detail: err.detail || null,
+      table: err.table || null,
+      column: err.column || null
+    });
+  }
 });
+
+  // ======================================================
+  // POST /api/usuarios
+  // ======================================================
+    router.post("/usuarios", async (req, res) => {
+      try {
+        const nombre = pick(req.body, "nombre", "Nombre");
+        const usuario = pick(req.body, "usuario", "Usuario");
+        const contrasena = pick(req.body, "contrasena", "Contrasena", "password");
+        const correo = pick(req.body, "correo", "Correo", "email");
+        const rol = pick(req.body, "rol", "Rol");
+
+        if (!nombre || !usuario || !contrasena || !rol) {
+          return res.status(400).json({
+            ok: false,
+            error: "Faltan campos obligatorios: nombre, usuario, contrasena y rol."
+          });
+        }
+
+        const rolNormalizado = String(rol).trim().toLowerCase();
+
+        const existente = await obtenerUsuarioPorUsername(usuario);
+        if (existente) {
+          return res.status(409).json({
+            ok: false,
+            error: "Ya existe un usuario con ese nombre de usuario."
+          });
+        }
+
+        const nuevo = await crearUsuario({
+          nombre,
+          usuario,
+          contrasena,
+          correo,
+          rol: rolNormalizado
+        });
+
+        res.status(201).json({
+          ok: true,
+          message: "Usuario creado correctamente",
+          usuario: nuevo
+        });
+      } catch (err) {
+      console.error("❌ Error creando usuario:", err);
+
+      res.status(500).json({
+        ok: false,
+        error: "Error creando usuario",
+        detalle: err.message,
+        codigo: err.code || null,
+        constraint: err.constraint || null,
+        detail: err.detail || null,
+        table: err.table || null,
+        column: err.column || null
+      });
+    }
+    });
+
+  // ======================================================
+  // PUT /api/usuarios/:id
+  // ======================================================
+  router.put("/usuarios/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const nombre = pick(req.body, "nombre", "Nombre");
+      const usuario = pick(req.body, "usuario", "Usuario");
+      const contrasena = pick(req.body, "contrasena", "Contrasena", "password");
+      const correo = pick(req.body, "correo", "Correo", "email");
+      const rol = pick(req.body, "rol", "Rol");
+
+      if (!nombre || !usuario || !rol) {
+        return res.status(400).json({
+          ok: false,
+          error: "Faltan campos obligatorios: nombre, usuario y rol."
+        });
+      }
+
+      const actual = await obtenerUsuarioPorId(id);
+      if (!actual) {
+        return res.status(404).json({
+          ok: false,
+          error: "Usuario no encontrado."
+        });
+      }
+
+      const existente = await obtenerUsuarioPorUsername(usuario);
+      if (existente && String(existente.idusuario) !== String(id)) {
+        return res.status(409).json({
+          ok: false,
+          error: "Ya existe otro usuario con ese nombre de usuario."
+        });
+      }
+
+      const actualizado = await actualizarUsuario(id, {
+        nombre,
+        usuario,
+        contrasena,
+        correo,
+        rol
+      });
+
+      res.json({
+        ok: true,
+        message: "Usuario actualizado correctamente",
+        usuario: actualizado
+      });
+    } catch (err) {
+      console.error("Error actualizando usuario:", err);
+      res.status(500).json({
+        ok: false,
+        error: "Error actualizando usuario"
+      });
+    }
+  });
+
+  // ======================================================
+  // DELETE /api/usuarios/:id
+  // ======================================================
+  router.delete("/usuarios/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const eliminado = await eliminarUsuario(id);
+
+      if (!eliminado) {
+        return res.status(404).json({
+          ok: false,
+          error: "Usuario no encontrado."
+        });
+      }
+
+      res.json({
+        ok: true,
+        message: "Usuario eliminado correctamente"
+      });
+    } catch (err) {
+      console.error("Error eliminando usuario:", err);
+      res.status(500).json({
+        ok: false,
+        error: "Error eliminando usuario"
+      });
+    }
+  });
+
+  // ======================================================
+  // POST /api/login
+  // ======================================================
+  router.post("/login", async (req, res) => {
+    try {
+      const usuario = pick(req.body, "usuario", "Usuario");
+      const contrasena = pick(req.body, "contrasena", "Contrasena", "password");
+
+      if (!usuario || !contrasena) {
+        return res.status(400).json({
+          ok: false,
+          error: "Faltan credenciales."
+        });
+      }
+
+      const user = await loginUsuario(usuario, contrasena);
+
+      if (!user) {
+        return res.status(401).json({
+          ok: false,
+          error: "Credenciales incorrectas"
+        });
+      }
+
+      res.json({
+        ok: true,
+        mensaje: "Login exitoso",
+        usuario: user
+      });
+    } catch (err) {
+      console.error("❌ Error en login:", err);
+
+      res.status(500).json({
+        ok: false,
+        error: "Error en login",
+        detalle: err.message,
+        codigo: err.code || null,
+        constraint: err.constraint || null,
+        detail: err.detail || null,
+        table: err.table || null,
+        column: err.column || null
+      });
+    }
+  });
+
+  // ======================================================
+// GET /api/action-plans
 // ======================================================
-// POST /api/usuarios
-// Crear usuario
-// ======================================================
-router.post("/usuarios", async (req, res) => {
- try {
-   const nombre = normalizeText(req.body.nombre || req.body.name);
-   const usuario = normalizeText(req.body.usuario || req.body.username);
-   const contrasena = normalizeText(req.body.contrasena || req.body.password);
-   const correo = normalizeText(req.body.correo || req.body.email);
-   const rol = normalizeRole(req.body.rol || req.body.role);
-   if (!nombre) {
-     return res.status(400).json({
-       ok: false,
-       error: "El nombre del usuario es obligatorio."
-     });
-   }
-   if (!usuario) {
-     return res.status(400).json({
-       ok: false,
-       error: "El usuario para login es obligatorio."
-     });
-   }
-   if (!contrasena) {
-     return res.status(400).json({
-       ok: false,
-       error: "La contraseña es obligatoria."
-     });
-   }
-   const pool = await getPool();
-   // Validar duplicado por usuario
-   const duplicated = await pool
-     .request()
-     .input("usuario", sql.NVarChar(100), usuario)
-     .query(`
-       SELECT TOP 1
-         idusuario
-       FROM dbo.usuarios
-       WHERE LOWER(usuario) = LOWER(@usuario)
-     `);
-   if (duplicated.recordset.length > 0) {
-     return res.status(409).json({
-       ok: false,
-       error: "Ya existe un usuario con ese login."
-     });
-   }
-   // Consulta SQL unificada (se arregló el corte)
-   const result = await pool
-     .request()
-     .input("nombre", sql.NVarChar(150), nombre)
-     .input("usuario", sql.NVarChar(100), usuario)
-     .input("contrasena", sql.NVarChar(100), contrasena)
-     .input("rol", sql.NVarChar(50), rol)
-     .input("activo", sql.Bit, true)
-     .input("correo", sql.NVarChar(150), correo)
-     .query(`
-       INSERT INTO dbo.usuarios (
-         nombre,
-         usuario,
-         contrasena,
-         rol,
-         activo,
-         correo
-       )
-       OUTPUT
-         INSERTED.idusuario,
-         INSERTED.nombre,
-         INSERTED.usuario,
-         INSERTED.contrasena,
-         INSERTED.rol,
-         INSERTED.activo,
-         INSERTED.correo
-       VALUES (
-         @nombre,
-         @usuario,
-         @contrasena,
-         @rol,
-         @activo,
-         @correo
-       )
-     `);
-   res.status(201).json({
-     ok: true,
-     message: "Usuario creado correctamente.",
-     usuario: result.recordset[0]
-   });
- } catch (error) {
-   console.error("❌ Error creando usuario:", error);
-   res.status(500).json({
-     ok: false,
-     error: "Error creando usuario",
-     detalle: error.message,
-     number: error.number || null,
-     lineNumber: error.lineNumber || null
-   });
- }
+router.get("/action-plans", async (req, res) => {
+  try {
+    const planes = await obtenerActionPlans();
+
+    res.json(planes);
+  } catch (err) {
+    console.error("❌ Error obteniendo action plans:", err);
+
+    res.status(500).json({
+      ok: false,
+      error: "Error obteniendo planes de acción",
+      detalle: err.message
+    });
+  }
 });
+
 // ======================================================
-// PUT /api/usuarios/:id
-// Actualizar usuario
+// POST /api/action-plans
 // ======================================================
-router.put("/usuarios/:id", async (req, res) => {
- try {
-   const id = toInt(req.params.id);
-   const nombre = normalizeText(req.body.nombre || req.body.name);
-   const usuario = normalizeText(req.body.usuario || req.body.username);
-   const contrasena = normalizeText(req.body.contrasena || req.body.password);
-   const correo = normalizeText(req.body.correo || req.body.email);
-   const rol = normalizeRole(req.body.rol || req.body.role);
-   if (!id || id <= 0) {
-     return res.status(400).json({
-       ok: false,
-       error: "ID de usuario inválido."
-     });
-   }
-   if (!nombre) {
-     return res.status(400).json({
-       ok: false,
-       error: "El nombre del usuario es obligatorio."
-     });
-   }
-   if (!usuario) {
-     return res.status(400).json({
-       ok: false,
-       error: "El usuario para login es obligatorio."
-     });
-   }
-   const pool = await getPool();
-   // Validar que exista
-   const exists = await pool
-     .request()
-     .input("idusuario", sql.Int, id)
-     .query(`
-       SELECT TOP 1
-         idusuario
-       FROM dbo.usuarios
-       WHERE idusuario = @idusuario
-     `);
-   if (exists.recordset.length === 0) {
-     return res.status(404).json({
-       ok: false,
-       error: "El usuario no existe."
-     });
-   }
-   // Validar duplicado con otro usuario
-   const duplicated = await pool
-     .request()
-     .input("usuario", sql.NVarChar(100), usuario)
-     .input("idusuario", sql.Int, id)
-     .query(`
-       SELECT TOP 1
-         idusuario
-       FROM dbo.usuarios
-       WHERE LOWER(usuario) = LOWER(@usuario)
-         AND idusuario <> @idusuario
-     `);
-   if (duplicated.recordset.length > 0) {
-     return res.status(409).json({
-       ok: false,
-       error: "Ya existe otro usuario con ese login."
-     });
-   }
-   let result;
-   if (contrasena) {
-     result = await pool
-       .request()
-       .input("idusuario", sql.Int, id)
-       .input("nombre", sql.NVarChar(150), nombre)
-       .input("usuario", sql.NVarChar(100), usuario)
-       .input("contrasena", sql.NVarChar(100), contrasena)
-       .input("rol", sql.NVarChar(50), rol)
-       .input("correo", sql.NVarChar(150), correo)
-       .query(`
-         UPDATE dbo.usuarios
-         SET
-           nombre = @nombre,
-           usuario = @usuario,
-           contrasena = @contrasena,
-           rol = @rol,
-           correo = @correo
-         OUTPUT
-           INSERTED.idusuario,
-           INSERTED.nombre,
-           INSERTED.usuario,
-           INSERTED.contrasena,
-           INSERTED.rol,
-           INSERTED.activo,
-           INSERTED.correo
-         WHERE idusuario = @idusuario
-       `);
-   } else {
-     result = await pool
-       .request()
-       .input("idusuario", sql.Int, id)
-       .input("nombre", sql.NVarChar(150), nombre)
-       .input("usuario", sql.NVarChar(100), usuario)
-       .input("rol", sql.NVarChar(50), rol)
-       .input("correo", sql.NVarChar(150), correo)
-       .query(`
-         UPDATE dbo.usuarios
-         SET
-           nombre = @nombre,
-           usuario = @usuario,
-           rol = @rol,
-           correo = @correo
-         OUTPUT
-           INSERTED.idusuario,
-           INSERTED.nombre,
-           INSERTED.usuario,
-           INSERTED.contrasena,
-           INSERTED.rol,
-           INSERTED.activo,
-           INSERTED.correo
-         WHERE idusuario = @idusuario
-       `);
-   }
-   res.json({
-     ok: true,
-     message: "Usuario actualizado correctamente.",
-     usuario: result.recordset[0]
-   });
- } catch (error) {
-   console.error("❌ Error actualizando usuario:", error);
-   res.status(500).json({
-     ok: false,
-     error: "Error actualizando usuario",
-     detalle: error.message,
-     number: error.number || null,
-     lineNumber: error.lineNumber || null
-   });
- }
+router.post("/action-plans", async (req, res) => {
+  try {
+    const nuevo = await crearActionPlan(req.body);
+
+    res.status(201).json({
+      ok: true,
+      message: "Plan de acción creado correctamente",
+      plan: nuevo
+    });
+  } catch (err) {
+    console.error("❌ Error creando action plan:", err);
+
+    res.status(500).json({
+      ok: false,
+      error: "Error creando plan de acción",
+      detalle: err.message
+    });
+  }
 });
+
 // ======================================================
-// DELETE /api/usuarios/:id
-// Eliminar usuario
+// PUT /api/action-plans/:id
 // ======================================================
-router.delete("/usuarios/:id", async (req, res) => {
- try {
-   const id = toInt(req.params.id);
-   if (!id || id <= 0) {
-     return res.status(400).json({
-       ok: false,
-       error: "ID de usuario inválido."
-     });
-   }
-   const pool = await getPool();
-   const result = await pool
-     .request()
-     .input("idusuario", sql.Int, id)
-     .query(`
-       DELETE FROM dbo.usuarios
-       OUTPUT DELETED.idusuario
-       WHERE idusuario = @idusuario
-     `);
-   if (result.recordset.length === 0) {
-     return res.status(404).json({
-       ok: false,
-       error: "El usuario no existe."
-     });
-   }
-   res.json({
-     ok: true,
-     message: "Usuario eliminado correctamente."
-   });
- } catch (error) {
-   console.error("❌ Error eliminando usuario:", error);
-   if (error.number === 547) {
-     return res.status(409).json({
-       ok: false,
-       error: "No se puede eliminar el usuario porque tiene auditorías relacionadas."
-     });
-   }
-   res.status(500).json({
-     ok: false,
-     error: "Error eliminando usuario",
-     detalle: error.message,
-     number: error.number || null,
-     lineNumber: error.lineNumber || null
-   });
- }
+router.put("/action-plans/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const actualizado = await actualizarActionPlan(id, req.body);
+
+    if (!actualizado) {
+      return res.status(404).json({
+        ok: false,
+        error: "Plan de acción no encontrado"
+      });
+    }
+
+    res.json({
+      ok: true,
+      message: "Plan de acción actualizado correctamente",
+      plan: actualizado
+    });
+  } catch (err) {
+    console.error("❌ Error actualizando action plan:", err);
+
+    res.status(500).json({
+      ok: false,
+      error: "Error actualizando plan de acción",
+      detalle: err.message
+    });
+  }
 });
-module.exports = router;
+
+// ======================================================
+// PATCH /api/action-plans/:id/cerrar
+// ======================================================
+router.patch("/action-plans/:id/cerrar", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const cerrado = await cerrarActionPlan(id);
+
+    if (!cerrado) {
+      return res.status(404).json({
+        ok: false,
+        error: "Plan de acción no encontrado"
+      });
+    }
+
+    res.json({
+      ok: true,
+      message: "Plan de acción cerrado correctamente",
+      plan: cerrado
+    });
+  } catch (err) {
+    console.error("❌ Error cerrando action plan:", err);
+
+    res.status(500).json({
+      ok: false,
+      error: "Error cerrando plan de acción",
+      detalle: err.message
+    });
+  }
+});
+
+// ======================================================
+// DELETE /api/action-plans/:id
+// ======================================================
+router.delete("/action-plans/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const eliminado = await eliminarActionPlan(id);
+
+    if (!eliminado) {
+      return res.status(404).json({
+        ok: false,
+        error: "Plan de acción no encontrado"
+      });
+    }
+
+    res.json({
+      ok: true,
+      message: "Plan de acción eliminado correctamente"
+    });
+  } catch (err) {
+    console.error("❌ Error eliminando action plan:", err);
+
+    res.status(500).json({
+      ok: false,
+      error: "Error eliminando plan de acción",
+      detalle: err.message
+    });
+  }
+});
+
+  module.exports = router;
