@@ -1,4 +1,4 @@
-const pool = require("./db");
+const { sql, getPool } = require("./db");
 
 // ======================================================
 // HELPERS
@@ -12,6 +12,28 @@ function pick(obj, ...keys) {
   return undefined;
 }
 
+function toNull(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  return value;
+}
+
+function toIntOrNull(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const numberValue = Number(value);
+
+  if (Number.isNaN(numberValue)) {
+    return null;
+  }
+
+  return numberValue;
+}
+
 // ======================================================
 // CREAR USUARIO
 // ======================================================
@@ -23,27 +45,56 @@ async function crearUsuario(data) {
     const correo = pick(data, "correo", "Correo", "email");
     const rol = String(pick(data, "rol", "Rol") || "").trim().toLowerCase();
 
-    const query = `
-      INSERT INTO usuarios (nombre, usuario, contrasena, correo, rol, activo)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING idusuario, nombre, usuario, contrasena, correo, rol, activo
-    `;
+    const pool = await getPool();
 
-    const values = [nombre, usuario, contrasena, correo || "", rol, true];
+    const result = await pool
+      .request()
+      .input("nombre", sql.NVarChar(sql.MAX), nombre)
+      .input("usuario", sql.NVarChar(sql.MAX), usuario)
+      .input("contrasena", sql.NVarChar(sql.MAX), contrasena)
+      .input("correo", sql.NVarChar(sql.MAX), correo || "")
+      .input("rol", sql.NVarChar(sql.MAX), rol)
+      .input("activo", sql.Bit, true)
+      .query(`
+        INSERT INTO usuarios (
+          nombre,
+          usuario,
+          contrasena,
+          correo,
+          rol,
+          activo
+        )
+        OUTPUT
+          INSERTED.idusuario,
+          INSERTED.nombre,
+          INSERTED.usuario,
+          INSERTED.contrasena,
+          INSERTED.correo,
+          INSERTED.rol,
+          INSERTED.activo
+        VALUES (
+          @nombre,
+          @usuario,
+          @contrasena,
+          @correo,
+          @rol,
+          @activo
+        )
+      `);
 
-    console.log("📤 INSERT usuarios values:", values);
-
-    const result = await pool.query(query, values);
-    return result.rows[0];
+    return result.recordset[0];
   } catch (error) {
     console.error("❌ Error real en crearUsuario:", {
       message: error.message,
       code: error.code,
-      detail: error.detail,
-      constraint: error.constraint,
-      table: error.table,
-      column: error.column
+      number: error.number,
+      state: error.state,
+      class: error.class,
+      serverName: error.serverName,
+      procName: error.procName,
+      lineNumber: error.lineNumber
     });
+
     throw error;
   }
 }
@@ -52,7 +103,9 @@ async function crearUsuario(data) {
 // OBTENER TODOS LOS USUARIOS
 // ======================================================
 async function obtenerUsuarios() {
-  const query = `
+  const pool = await getPool();
+
+  const result = await pool.request().query(`
     SELECT
       idusuario,
       nombre,
@@ -62,54 +115,59 @@ async function obtenerUsuarios() {
       rol
     FROM usuarios
     ORDER BY idusuario ASC
-  `;
+  `);
 
-  const result = await pool.query(query);
-  return result.rows;
+  return result.recordset;
 }
 
 // ======================================================
 // OBTENER USUARIO POR ID
 // ======================================================
 async function obtenerUsuarioPorId(id) {
-  const query = `
-    SELECT
-      idusuario,
-      nombre,
-      usuario,
-      contrasena,
-      correo,
-      rol,
-      activo
-    FROM usuarios
-    WHERE idusuario = $1
-    LIMIT 1
-  `;
+  const pool = await getPool();
 
-  const result = await pool.query(query, [id]);
-  return result.rows[0] || null;
+  const result = await pool
+    .request()
+    .input("idusuario", sql.Int, Number(id))
+    .query(`
+      SELECT TOP 1
+        idusuario,
+        nombre,
+        usuario,
+        contrasena,
+        correo,
+        rol,
+        activo
+      FROM usuarios
+      WHERE idusuario = @idusuario
+    `);
+
+  return result.recordset[0] || null;
 }
 
 // ======================================================
 // OBTENER USUARIO POR USERNAME
 // ======================================================
 async function obtenerUsuarioPorUsername(usuario) {
-  const query = `
-    SELECT
-      idusuario,
-      nombre,
-      usuario,
-      contrasena,
-      correo,
-      rol,
-      activo
-    FROM usuarios
-    WHERE LOWER(usuario) = LOWER($1)
-    LIMIT 1
-  `;
+  const pool = await getPool();
 
-  const result = await pool.query(query, [usuario]);
-  return result.rows[0] || null;
+  const result = await pool
+    .request()
+    .input("usuario", sql.NVarChar(sql.MAX), usuario)
+    .query(`
+      SELECT TOP 1
+        idusuario,
+        nombre,
+        usuario,
+        contrasena,
+        correo,
+        rol,
+        activo
+      FROM usuarios
+      WHERE LOWER(usuario) = LOWER(@usuario)
+    `);
+
+  return result.recordset[0] || null;
 }
 
 // ======================================================
@@ -117,7 +175,10 @@ async function obtenerUsuarioPorUsername(usuario) {
 // ======================================================
 async function actualizarUsuario(id, data) {
   const actual = await obtenerUsuarioPorId(id);
-  if (!actual) return null;
+
+  if (!actual) {
+    return null;
+  }
 
   const nombre = pick(data, "nombre", "Nombre") ?? actual.nombre;
   const usuario = pick(data, "usuario", "Usuario") ?? actual.usuario;
@@ -135,43 +196,54 @@ async function actualizarUsuario(id, data) {
       ? correo
       : actual.correo;
 
-  const query = `
-    UPDATE usuarios
-    SET
-      nombre = $1,
-      usuario = $2,
-      contrasena = $3,
-      correo = $4,
-      rol = $5
-    WHERE idusuario = $6
-    RETURNING idusuario, nombre, usuario, contrasena, correo, rol, activo
-  `;
+  const pool = await getPool();
 
-  const values = [
-    nombre,
-    usuario,
-    passwordFinal,
-    correoFinal || "",
-    rol,
-    id
-  ];
+  const result = await pool
+    .request()
+    .input("idusuario", sql.Int, Number(id))
+    .input("nombre", sql.NVarChar(sql.MAX), nombre)
+    .input("usuario", sql.NVarChar(sql.MAX), usuario)
+    .input("contrasena", sql.NVarChar(sql.MAX), passwordFinal)
+    .input("correo", sql.NVarChar(sql.MAX), correoFinal || "")
+    .input("rol", sql.NVarChar(sql.MAX), rol)
+    .query(`
+      UPDATE usuarios
+      SET
+        nombre = @nombre,
+        usuario = @usuario,
+        contrasena = @contrasena,
+        correo = @correo,
+        rol = @rol
+      OUTPUT
+        INSERTED.idusuario,
+        INSERTED.nombre,
+        INSERTED.usuario,
+        INSERTED.contrasena,
+        INSERTED.correo,
+        INSERTED.rol,
+        INSERTED.activo
+      WHERE idusuario = @idusuario
+    `);
 
-  const result = await pool.query(query, values);
-  return result.rows[0];
+  return result.recordset[0] || null;
 }
 
 // ======================================================
 // ELIMINAR USUARIO
 // ======================================================
 async function eliminarUsuario(id) {
-  const query = `
-    DELETE FROM usuarios
-    WHERE idusuario = $1
-    RETURNING idusuario
-  `;
+  const pool = await getPool();
 
-  const result = await pool.query(query, [id]);
-  return result.rows[0] || null;
+  const result = await pool
+    .request()
+    .input("idusuario", sql.Int, Number(id))
+    .query(`
+      DELETE FROM usuarios
+      OUTPUT DELETED.idusuario
+      WHERE idusuario = @idusuario
+    `);
+
+  return result.recordset[0] || null;
 }
 
 // ======================================================
@@ -179,32 +251,39 @@ async function eliminarUsuario(id) {
 // ======================================================
 async function loginUsuario(usuario, contrasena) {
   try {
-    const query = `
-      SELECT
-        idusuario AS id,
-        nombre,
-        usuario,
-        contrasena,
-        correo,
-        rol,
-        activo
-      FROM usuarios
-      WHERE LOWER(usuario) = LOWER($1)
-        AND contrasena = $2
-      LIMIT 1
-    `;
+    const pool = await getPool();
 
-    const result = await pool.query(query, [usuario, contrasena]);
-    return result.rows[0] || null;
+    const result = await pool
+      .request()
+      .input("usuario", sql.NVarChar(sql.MAX), usuario)
+      .input("contrasena", sql.NVarChar(sql.MAX), contrasena)
+      .query(`
+        SELECT TOP 1
+          idusuario AS id,
+          nombre,
+          usuario,
+          contrasena,
+          correo,
+          rol,
+          activo
+        FROM usuarios
+        WHERE LOWER(usuario) = LOWER(@usuario)
+          AND contrasena = @contrasena
+      `);
+
+    return result.recordset[0] || null;
   } catch (error) {
     console.error("❌ Error real en loginUsuario:", {
       message: error.message,
       code: error.code,
-      detail: error.detail,
-      constraint: error.constraint,
-      table: error.table,
-      column: error.column
+      number: error.number,
+      state: error.state,
+      class: error.class,
+      serverName: error.serverName,
+      procName: error.procName,
+      lineNumber: error.lineNumber
     });
+
     throw error;
   }
 }
@@ -213,7 +292,9 @@ async function loginUsuario(usuario, contrasena) {
 // PREGUNTAS - OBTENER TODAS
 // ======================================================
 async function obtenerPreguntas() {
-  const query = `
+  const pool = await getPool();
+
+  const result = await pool.request().query(`
     SELECT
       p.idpregunta,
       p.texto,
@@ -223,58 +304,62 @@ async function obtenerPreguntas() {
     FROM preguntas p
     LEFT JOIN modulos m ON m.idmodulo = p.idmodulo
     ORDER BY p.idmodulo ASC, p.orden ASC, p.idpregunta ASC
-  `;
+  `);
 
-  const result = await pool.query(query);
-  return result.rows;
+  return result.recordset;
 }
 
 // ======================================================
 // PREGUNTAS - OBTENER POR ID
 // ======================================================
 async function obtenerPreguntaPorId(idpregunta) {
-  const query = `
-    SELECT
-      idpregunta,
-      texto,
-      idmodulo,
-      orden
-    FROM preguntas
-    WHERE idpregunta = $1
-    LIMIT 1
-  `;
+  const pool = await getPool();
 
-  const result = await pool.query(query, [idpregunta]);
-  return result.rows[0] || null;
+  const result = await pool
+    .request()
+    .input("idpregunta", sql.Int, Number(idpregunta))
+    .query(`
+      SELECT TOP 1
+        idpregunta,
+        texto,
+        idmodulo,
+        orden
+      FROM preguntas
+      WHERE idpregunta = @idpregunta
+    `);
+
+  return result.recordset[0] || null;
 }
 
 // ======================================================
 // PREGUNTAS - NORMALIZAR ORDEN DE UN MÓDULO
-// Deja orden como 1, 2, 3, 4... sin huecos
 // ======================================================
-async function normalizarOrdenPreguntasModulo(client, idmodulo) {
-  const result = await client.query(
-    `
-    SELECT idpregunta
-    FROM preguntas
-    WHERE idmodulo = $1
-    ORDER BY orden ASC, idpregunta ASC
-    `,
-    [idmodulo]
-  );
+async function normalizarOrdenPreguntasModulo(transaction, idmodulo) {
+  const selectRequest = new sql.Request(transaction);
 
-  for (let i = 0; i < result.rows.length; i++) {
+  const result = await selectRequest
+    .input("idmodulo", sql.Int, Number(idmodulo))
+    .query(`
+      SELECT idpregunta
+      FROM preguntas
+      WHERE idmodulo = @idmodulo
+      ORDER BY orden ASC, idpregunta ASC
+    `);
+
+  for (let i = 0; i < result.recordset.length; i++) {
     const nuevoOrden = i + 1;
-    const idpregunta = result.rows[i].idpregunta;
+    const idpregunta = result.recordset[i].idpregunta;
 
-    await client.query(
-      `
-      UPDATE preguntas
-      SET orden = $1
-      WHERE idpregunta = $2
-      `,
-      [nuevoOrden, idpregunta]
-    );
+    const updateRequest = new sql.Request(transaction);
+
+    await updateRequest
+      .input("orden", sql.Int, nuevoOrden)
+      .input("idpregunta", sql.Int, Number(idpregunta))
+      .query(`
+        UPDATE preguntas
+        SET orden = @orden
+        WHERE idpregunta = @idpregunta
+      `);
   }
 }
 
@@ -290,23 +375,25 @@ async function crearPregunta(data) {
     throw new Error("Faltan campos obligatorios: texto e idmodulo.");
   }
 
-  const client = await pool.connect();
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
 
   try {
-    await client.query("BEGIN");
+    await transaction.begin();
 
-    await normalizarOrdenPreguntasModulo(client, idmodulo);
+    await normalizarOrdenPreguntasModulo(transaction, idmodulo);
 
-    const totalResult = await client.query(
-      `
-      SELECT COUNT(*)::int AS total
-      FROM preguntas
-      WHERE idmodulo = $1
-      `,
-      [idmodulo]
-    );
+    const totalRequest = new sql.Request(transaction);
 
-    const total = totalResult.rows[0].total;
+    const totalResult = await totalRequest
+      .input("idmodulo", sql.Int, idmodulo)
+      .query(`
+        SELECT CAST(COUNT(*) AS INT) AS total
+        FROM preguntas
+        WHERE idmodulo = @idmodulo
+      `);
+
+    const total = totalResult.recordset[0].total;
 
     if (!orden || orden < 1) {
       orden = total + 1;
@@ -316,64 +403,73 @@ async function crearPregunta(data) {
       orden = total + 1;
     }
 
-    await client.query(
-      `
-      UPDATE preguntas
-      SET orden = orden + 1
-      WHERE idmodulo = $1
-        AND orden >= $2
-      `,
-      [idmodulo, orden]
-    );
+    const shiftRequest = new sql.Request(transaction);
 
-    const insertResult = await client.query(
-      `
-      INSERT INTO preguntas (
-        texto,
-        idmodulo,
-        orden
-      )
-      VALUES ($1, $2, $3)
-      RETURNING
-        idpregunta,
-        texto,
-        idmodulo,
-        orden
-      `,
-      [texto, idmodulo, orden]
-    );
+    await shiftRequest
+      .input("idmodulo", sql.Int, idmodulo)
+      .input("orden", sql.Int, orden)
+      .query(`
+        UPDATE preguntas
+        SET orden = orden + 1
+        WHERE idmodulo = @idmodulo
+          AND orden >= @orden
+      `);
 
-    await normalizarOrdenPreguntasModulo(client, idmodulo);
+    const insertRequest = new sql.Request(transaction);
 
-    await client.query("COMMIT");
+    const insertResult = await insertRequest
+      .input("texto", sql.NVarChar(sql.MAX), texto)
+      .input("idmodulo", sql.Int, idmodulo)
+      .input("orden", sql.Int, orden)
+      .query(`
+        INSERT INTO preguntas (
+          texto,
+          idmodulo,
+          orden
+        )
+        OUTPUT
+          INSERTED.idpregunta,
+          INSERTED.texto,
+          INSERTED.idmodulo,
+          INSERTED.orden
+        VALUES (
+          @texto,
+          @idmodulo,
+          @orden
+        )
+      `);
 
-    return insertResult.rows[0];
+    await normalizarOrdenPreguntasModulo(transaction, idmodulo);
+
+    await transaction.commit();
+
+    return insertResult.recordset[0];
   } catch (error) {
-    await client.query("ROLLBACK");
+    await transaction.rollback();
     console.error("❌ Error creando pregunta con reorden:", error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
 // ======================================================
 // PREGUNTAS - ACTUALIZAR CON REORDEN AUTOMÁTICO
-// Mantiene idpregunta fijo
 // ======================================================
 async function actualizarPregunta(idpregunta, data) {
   const actual = await obtenerPreguntaPorId(idpregunta);
 
-  if (!actual) return null;
+  if (!actual) {
+    return null;
+  }
 
-  const texto =
-    pick(data, "texto", "text", "pregunta") ?? actual.texto;
+  const texto = pick(data, "texto", "text", "pregunta") ?? actual.texto;
 
-  const nuevoModulo =
-    Number(pick(data, "idmodulo", "idModulo", "moduleId") ?? actual.idmodulo);
+  const nuevoModulo = Number(
+    pick(data, "idmodulo", "idModulo", "moduleId") ?? actual.idmodulo
+  );
 
-  let nuevoOrden =
-    Number(pick(data, "orden", "order", "numeroPregunta") ?? actual.orden);
+  let nuevoOrden = Number(
+    pick(data, "orden", "order", "numeroPregunta") ?? actual.orden
+  );
 
   const moduloAnterior = Number(actual.idmodulo);
   const ordenAnterior = Number(actual.orden);
@@ -382,28 +478,31 @@ async function actualizarPregunta(idpregunta, data) {
     throw new Error("Faltan campos obligatorios: texto e idmodulo.");
   }
 
-  const client = await pool.connect();
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
 
   try {
-    await client.query("BEGIN");
+    await transaction.begin();
 
-    await normalizarOrdenPreguntasModulo(client, moduloAnterior);
+    await normalizarOrdenPreguntasModulo(transaction, moduloAnterior);
 
     if (moduloAnterior !== nuevoModulo) {
-      await normalizarOrdenPreguntasModulo(client, nuevoModulo);
+      await normalizarOrdenPreguntasModulo(transaction, nuevoModulo);
     }
 
-    const totalNuevoModuloResult = await client.query(
-      `
-      SELECT COUNT(*)::int AS total
-      FROM preguntas
-      WHERE idmodulo = $1
-        AND idpregunta <> $2
-      `,
-      [nuevoModulo, idpregunta]
-    );
+    const totalRequest = new sql.Request(transaction);
 
-    const totalNuevoModulo = totalNuevoModuloResult.rows[0].total;
+    const totalNuevoModuloResult = await totalRequest
+      .input("nuevoModulo", sql.Int, nuevoModulo)
+      .input("idpregunta", sql.Int, Number(idpregunta))
+      .query(`
+        SELECT CAST(COUNT(*) AS INT) AS total
+        FROM preguntas
+        WHERE idmodulo = @nuevoModulo
+          AND idpregunta <> @idpregunta
+      `);
+
+    const totalNuevoModulo = totalNuevoModuloResult.recordset[0].total;
 
     if (!nuevoOrden || nuevoOrden < 1) {
       nuevoOrden = totalNuevoModulo + 1;
@@ -413,113 +512,124 @@ async function actualizarPregunta(idpregunta, data) {
       nuevoOrden = totalNuevoModulo + 1;
     }
 
-    // ======================================================
-    // CASO 1: MISMO MÓDULO
-    // ======================================================
     if (moduloAnterior === nuevoModulo) {
       if (nuevoOrden < ordenAnterior) {
-        await client.query(
-          `
-          UPDATE preguntas
-          SET orden = orden + 1
-          WHERE idmodulo = $1
-            AND orden >= $2
-            AND orden < $3
-            AND idpregunta <> $4
-          `,
-          [nuevoModulo, nuevoOrden, ordenAnterior, idpregunta]
-        );
+        const request = new sql.Request(transaction);
+
+        await request
+          .input("nuevoModulo", sql.Int, nuevoModulo)
+          .input("nuevoOrden", sql.Int, nuevoOrden)
+          .input("ordenAnterior", sql.Int, ordenAnterior)
+          .input("idpregunta", sql.Int, Number(idpregunta))
+          .query(`
+            UPDATE preguntas
+            SET orden = orden + 1
+            WHERE idmodulo = @nuevoModulo
+              AND orden >= @nuevoOrden
+              AND orden < @ordenAnterior
+              AND idpregunta <> @idpregunta
+          `);
       } else if (nuevoOrden > ordenAnterior) {
-        await client.query(
-          `
-          UPDATE preguntas
-          SET orden = orden - 1
-          WHERE idmodulo = $1
-            AND orden > $2
-            AND orden <= $3
-            AND idpregunta <> $4
-          `,
-          [nuevoModulo, ordenAnterior, nuevoOrden, idpregunta]
-        );
+        const request = new sql.Request(transaction);
+
+        await request
+          .input("nuevoModulo", sql.Int, nuevoModulo)
+          .input("ordenAnterior", sql.Int, ordenAnterior)
+          .input("nuevoOrden", sql.Int, nuevoOrden)
+          .input("idpregunta", sql.Int, Number(idpregunta))
+          .query(`
+            UPDATE preguntas
+            SET orden = orden - 1
+            WHERE idmodulo = @nuevoModulo
+              AND orden > @ordenAnterior
+              AND orden <= @nuevoOrden
+              AND idpregunta <> @idpregunta
+          `);
       }
 
-      const updateResult = await client.query(
-        `
-        UPDATE preguntas
-        SET
-          texto = $1,
-          idmodulo = $2,
-          orden = $3
-        WHERE idpregunta = $4
-        RETURNING
-          idpregunta,
-          texto,
-          idmodulo,
-          orden
-        `,
-        [texto, nuevoModulo, nuevoOrden, idpregunta]
-      );
+      const updateRequest = new sql.Request(transaction);
 
-      await normalizarOrdenPreguntasModulo(client, nuevoModulo);
+      const updateResult = await updateRequest
+        .input("texto", sql.NVarChar(sql.MAX), texto)
+        .input("nuevoModulo", sql.Int, nuevoModulo)
+        .input("nuevoOrden", sql.Int, nuevoOrden)
+        .input("idpregunta", sql.Int, Number(idpregunta))
+        .query(`
+          UPDATE preguntas
+          SET
+            texto = @texto,
+            idmodulo = @nuevoModulo,
+            orden = @nuevoOrden
+          OUTPUT
+            INSERTED.idpregunta,
+            INSERTED.texto,
+            INSERTED.idmodulo,
+            INSERTED.orden
+          WHERE idpregunta = @idpregunta
+        `);
 
-      await client.query("COMMIT");
+      await normalizarOrdenPreguntasModulo(transaction, nuevoModulo);
 
-      return updateResult.rows[0];
+      await transaction.commit();
+
+      return updateResult.recordset[0];
     }
 
-    // ======================================================
-    // CASO 2: CAMBIA DE MÓDULO
-    // ======================================================
+    const reduceOldModuleRequest = new sql.Request(transaction);
 
-    await client.query(
-      `
-      UPDATE preguntas
-      SET orden = orden - 1
-      WHERE idmodulo = $1
-        AND orden > $2
-      `,
-      [moduloAnterior, ordenAnterior]
-    );
+    await reduceOldModuleRequest
+      .input("moduloAnterior", sql.Int, moduloAnterior)
+      .input("ordenAnterior", sql.Int, ordenAnterior)
+      .query(`
+        UPDATE preguntas
+        SET orden = orden - 1
+        WHERE idmodulo = @moduloAnterior
+          AND orden > @ordenAnterior
+      `);
 
-    await client.query(
-      `
-      UPDATE preguntas
-      SET orden = orden + 1
-      WHERE idmodulo = $1
-        AND orden >= $2
-      `,
-      [nuevoModulo, nuevoOrden]
-    );
+    const shiftNewModuleRequest = new sql.Request(transaction);
 
-    const updateResult = await client.query(
-      `
-      UPDATE preguntas
-      SET
-        texto = $1,
-        idmodulo = $2,
-        orden = $3
-      WHERE idpregunta = $4
-      RETURNING
-        idpregunta,
-        texto,
-        idmodulo,
-        orden
-      `,
-      [texto, nuevoModulo, nuevoOrden, idpregunta]
-    );
+    await shiftNewModuleRequest
+      .input("nuevoModulo", sql.Int, nuevoModulo)
+      .input("nuevoOrden", sql.Int, nuevoOrden)
+      .query(`
+        UPDATE preguntas
+        SET orden = orden + 1
+        WHERE idmodulo = @nuevoModulo
+          AND orden >= @nuevoOrden
+      `);
 
-    await normalizarOrdenPreguntasModulo(client, moduloAnterior);
-    await normalizarOrdenPreguntasModulo(client, nuevoModulo);
+    const updateRequest = new sql.Request(transaction);
 
-    await client.query("COMMIT");
+    const updateResult = await updateRequest
+      .input("texto", sql.NVarChar(sql.MAX), texto)
+      .input("nuevoModulo", sql.Int, nuevoModulo)
+      .input("nuevoOrden", sql.Int, nuevoOrden)
+      .input("idpregunta", sql.Int, Number(idpregunta))
+      .query(`
+        UPDATE preguntas
+        SET
+          texto = @texto,
+          idmodulo = @nuevoModulo,
+          orden = @nuevoOrden
+        OUTPUT
+          INSERTED.idpregunta,
+          INSERTED.texto,
+          INSERTED.idmodulo,
+          INSERTED.orden
+        WHERE idpregunta = @idpregunta
+      `);
 
-    return updateResult.rows[0];
+    await normalizarOrdenPreguntasModulo(transaction, moduloAnterior);
+    await normalizarOrdenPreguntasModulo(transaction, nuevoModulo);
+
+    await transaction.commit();
+
+    return updateResult.recordset[0];
   } catch (error) {
-    await client.query("ROLLBACK");
+    await transaction.rollback();
     console.error("❌ Error actualizando pregunta con reorden:", error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
@@ -529,36 +639,38 @@ async function actualizarPregunta(idpregunta, data) {
 async function eliminarPregunta(idpregunta) {
   const actual = await obtenerPreguntaPorId(idpregunta);
 
-  if (!actual) return null;
+  if (!actual) {
+    return null;
+  }
 
-  const client = await pool.connect();
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
 
   try {
-    await client.query("BEGIN");
+    await transaction.begin();
 
-    const eliminadoResult = await client.query(
-      `
-      DELETE FROM preguntas
-      WHERE idpregunta = $1
-      RETURNING
-        idpregunta,
-        idmodulo,
-        orden
-      `,
-      [idpregunta]
-    );
+    const deleteRequest = new sql.Request(transaction);
 
-    await normalizarOrdenPreguntasModulo(client, actual.idmodulo);
+    const eliminadoResult = await deleteRequest
+      .input("idpregunta", sql.Int, Number(idpregunta))
+      .query(`
+        DELETE FROM preguntas
+        OUTPUT
+          DELETED.idpregunta,
+          DELETED.idmodulo,
+          DELETED.orden
+        WHERE idpregunta = @idpregunta
+      `);
 
-    await client.query("COMMIT");
+    await normalizarOrdenPreguntasModulo(transaction, actual.idmodulo);
 
-    return eliminadoResult.rows[0] || null;
+    await transaction.commit();
+
+    return eliminadoResult.recordset[0] || null;
   } catch (error) {
-    await client.query("ROLLBACK");
+    await transaction.rollback();
     console.error("❌ Error eliminando pregunta:", error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
@@ -589,34 +701,34 @@ function calcularEstadoActionPlan(fechaCompromiso, fechaCierre, estadoManual = "
 // OBTENER PLANES DE ACCIÓN
 // ======================================================
 async function obtenerActionPlans() {
-  const query = `
+  const pool = await getPool();
+
+  const result = await pool.request().query(`
     SELECT
       id_action_plan AS id,
       fecha,
-      id_usuario AS "creadoPorId",
-      creado_por AS "creadoPor",
-      id_business_unit AS "idBusinessUnit",
-      business_unit AS "businessUnit",
-      id_production_line AS "idProductionLine",
-      production_line AS "productionLine",
-      id_modulo AS "idModulo",
+      id_usuario AS creadoPorId,
+      creado_por AS creadoPor,
+      id_business_unit AS idBusinessUnit,
+      business_unit AS businessUnit,
+      id_production_line AS idProductionLine,
+      production_line AS productionLine,
+      id_modulo AS idModulo,
       modulo,
-      id_pregunta AS "idPregunta",
+      id_pregunta AS idPregunta,
       pregunta,
-      accion_requerida AS "accionRequerida",
+      accion_requerida AS accionRequerida,
       responsable,
-      fecha_compromiso AS "fechaCompromiso",
-      fecha_cierre AS "fechaCierre",
+      fecha_compromiso AS fechaCompromiso,
+      fecha_cierre AS fechaCierre,
       estado,
-      creado_en AS "creadoEn",
-      actualizado_en AS "actualizadoEn"
+      creado_en AS creadoEn,
+      actualizado_en AS actualizadoEn
     FROM action_plans
     ORDER BY fecha DESC, id_action_plan DESC
-  `;
+  `);
 
-  const result = await pool.query(query);
-
-  return result.rows.map(item => ({
+  return result.recordset.map(item => ({
     ...item,
     estado: calcularEstadoActionPlan(
       item.fechaCompromiso,
@@ -630,34 +742,37 @@ async function obtenerActionPlans() {
 // OBTENER PLAN DE ACCIÓN POR ID
 // ======================================================
 async function obtenerActionPlanPorId(id) {
-  const query = `
-    SELECT
-      id_action_plan AS id,
-      fecha,
-      id_usuario AS "creadoPorId",
-      creado_por AS "creadoPor",
-      id_business_unit AS "idBusinessUnit",
-      business_unit AS "businessUnit",
-      id_production_line AS "idProductionLine",
-      production_line AS "productionLine",
-      id_modulo AS "idModulo",
-      modulo,
-      id_pregunta AS "idPregunta",
-      pregunta,
-      accion_requerida AS "accionRequerida",
-      responsable,
-      fecha_compromiso AS "fechaCompromiso",
-      fecha_cierre AS "fechaCierre",
-      estado,
-      creado_en AS "creadoEn",
-      actualizado_en AS "actualizadoEn"
-    FROM action_plans
-    WHERE id_action_plan = $1
-    LIMIT 1
-  `;
+  const pool = await getPool();
 
-  const result = await pool.query(query, [id]);
-  return result.rows[0] || null;
+  const result = await pool
+    .request()
+    .input("id", sql.Int, Number(id))
+    .query(`
+      SELECT TOP 1
+        id_action_plan AS id,
+        fecha,
+        id_usuario AS creadoPorId,
+        creado_por AS creadoPor,
+        id_business_unit AS idBusinessUnit,
+        business_unit AS businessUnit,
+        id_production_line AS idProductionLine,
+        production_line AS productionLine,
+        id_modulo AS idModulo,
+        modulo,
+        id_pregunta AS idPregunta,
+        pregunta,
+        accion_requerida AS accionRequerida,
+        responsable,
+        fecha_compromiso AS fechaCompromiso,
+        fecha_cierre AS fechaCierre,
+        estado,
+        creado_en AS creadoEn,
+        actualizado_en AS actualizadoEn
+      FROM action_plans
+      WHERE id_action_plan = @id
+    `);
+
+  return result.recordset[0] || null;
 }
 
 // ======================================================
@@ -689,71 +804,84 @@ async function crearActionPlan(data) {
 
   const estado = calcularEstadoActionPlan(fechaCompromiso, fechaCierre, "ABIERTO");
 
-  const query = `
-    INSERT INTO action_plans (
-      fecha,
-      id_usuario,
-      creado_por,
-      id_business_unit,
-      business_unit,
-      id_production_line,
-      production_line,
-      id_modulo,
-      modulo,
-      id_pregunta,
-      pregunta,
-      accion_requerida,
-      responsable,
-      fecha_compromiso,
-      fecha_cierre,
-      estado
-    )
-    VALUES (
-      $1, $2, $3, $4, $5,
-      $6, $7, $8, $9, $10,
-      $11, $12, $13, $14, $15, $16
-    )
-    RETURNING
-      id_action_plan AS id,
-      fecha,
-      id_usuario AS "creadoPorId",
-      creado_por AS "creadoPor",
-      id_business_unit AS "idBusinessUnit",
-      business_unit AS "businessUnit",
-      id_production_line AS "idProductionLine",
-      production_line AS "productionLine",
-      id_modulo AS "idModulo",
-      modulo,
-      id_pregunta AS "idPregunta",
-      pregunta,
-      accion_requerida AS "accionRequerida",
-      responsable,
-      fecha_compromiso AS "fechaCompromiso",
-      fecha_cierre AS "fechaCierre",
-      estado
-  `;
+  const pool = await getPool();
 
-  const values = [
-    fecha,
-    creadoPorId || null,
-    creadoPor,
-    idBusinessUnit || null,
-    businessUnit,
-    idProductionLine || null,
-    productionLine,
-    idModulo,
-    modulo,
-    idPregunta,
-    pregunta,
-    accionRequerida,
-    responsable,
-    fechaCompromiso,
-    fechaCierre,
-    estado
-  ];
+  const result = await pool
+    .request()
+    .input("fecha", sql.Date, toNull(fecha))
+    .input("creadoPorId", sql.Int, toIntOrNull(creadoPorId))
+    .input("creadoPor", sql.NVarChar(sql.MAX), creadoPor)
+    .input("idBusinessUnit", sql.Int, toIntOrNull(idBusinessUnit))
+    .input("businessUnit", sql.NVarChar(sql.MAX), businessUnit)
+    .input("idProductionLine", sql.Int, toIntOrNull(idProductionLine))
+    .input("productionLine", sql.NVarChar(sql.MAX), productionLine)
+    .input("idModulo", sql.Int, toIntOrNull(idModulo))
+    .input("modulo", sql.NVarChar(sql.MAX), modulo)
+    .input("idPregunta", sql.Int, toIntOrNull(idPregunta))
+    .input("pregunta", sql.NVarChar(sql.MAX), pregunta)
+    .input("accionRequerida", sql.NVarChar(sql.MAX), accionRequerida)
+    .input("responsable", sql.NVarChar(sql.MAX), responsable)
+    .input("fechaCompromiso", sql.Date, toNull(fechaCompromiso))
+    .input("fechaCierre", sql.Date, toNull(fechaCierre))
+    .input("estado", sql.NVarChar(sql.MAX), estado)
+    .query(`
+      INSERT INTO action_plans (
+        fecha,
+        id_usuario,
+        creado_por,
+        id_business_unit,
+        business_unit,
+        id_production_line,
+        production_line,
+        id_modulo,
+        modulo,
+        id_pregunta,
+        pregunta,
+        accion_requerida,
+        responsable,
+        fecha_compromiso,
+        fecha_cierre,
+        estado
+      )
+      OUTPUT
+        INSERTED.id_action_plan AS id,
+        INSERTED.fecha,
+        INSERTED.id_usuario AS creadoPorId,
+        INSERTED.creado_por AS creadoPor,
+        INSERTED.id_business_unit AS idBusinessUnit,
+        INSERTED.business_unit AS businessUnit,
+        INSERTED.id_production_line AS idProductionLine,
+        INSERTED.production_line AS productionLine,
+        INSERTED.id_modulo AS idModulo,
+        INSERTED.modulo,
+        INSERTED.id_pregunta AS idPregunta,
+        INSERTED.pregunta,
+        INSERTED.accion_requerida AS accionRequerida,
+        INSERTED.responsable,
+        INSERTED.fecha_compromiso AS fechaCompromiso,
+        INSERTED.fecha_cierre AS fechaCierre,
+        INSERTED.estado
+      VALUES (
+        @fecha,
+        @creadoPorId,
+        @creadoPor,
+        @idBusinessUnit,
+        @businessUnit,
+        @idProductionLine,
+        @productionLine,
+        @idModulo,
+        @modulo,
+        @idPregunta,
+        @pregunta,
+        @accionRequerida,
+        @responsable,
+        @fechaCompromiso,
+        @fechaCierre,
+        @estado
+      )
+    `);
 
-  const result = await pool.query(query, values);
-  return result.rows[0];
+  return result.recordset[0];
 }
 
 // ======================================================
@@ -761,7 +889,10 @@ async function crearActionPlan(data) {
 // ======================================================
 async function actualizarActionPlan(id, data) {
   const actual = await obtenerActionPlanPorId(id);
-  if (!actual) return null;
+
+  if (!actual) {
+    return null;
+  }
 
   const fecha = pick(data, "fecha", "Fecha") || actual.fecha;
 
@@ -807,114 +938,122 @@ async function actualizarActionPlan(id, data) {
     actual.estado || "ABIERTO"
   );
 
-  const query = `
-    UPDATE action_plans
-    SET
-      fecha = $1,
-      id_business_unit = $2,
-      business_unit = $3,
-      id_production_line = $4,
-      production_line = $5,
-      id_modulo = $6,
-      modulo = $7,
-      id_pregunta = $8,
-      pregunta = $9,
-      accion_requerida = $10,
-      responsable = $11,
-      fecha_compromiso = $12,
-      fecha_cierre = $13,
-      estado = $14,
-      actualizado_en = CURRENT_TIMESTAMP
-    WHERE id_action_plan = $15
-    RETURNING
-      id_action_plan AS id,
-      fecha,
-      id_usuario AS "creadoPorId",
-      creado_por AS "creadoPor",
-      id_business_unit AS "idBusinessUnit",
-      business_unit AS "businessUnit",
-      id_production_line AS "idProductionLine",
-      production_line AS "productionLine",
-      id_modulo AS "idModulo",
-      modulo,
-      id_pregunta AS "idPregunta",
-      pregunta,
-      accion_requerida AS "accionRequerida",
-      responsable,
-      fecha_compromiso AS "fechaCompromiso",
-      fecha_cierre AS "fechaCierre",
-      estado
-  `;
+  const pool = await getPool();
 
-  const values = [
-    fecha,
-    idBusinessUnit || null,
-    businessUnit,
-    idProductionLine || null,
-    productionLine,
-    idModulo,
-    modulo,
-    idPregunta,
-    pregunta,
-    accionRequerida,
-    responsable || "",
-    fechaCompromiso || null,
-    fechaCierre || null,
-    estado,
-    id
-  ];
+  const result = await pool
+    .request()
+    .input("id", sql.Int, Number(id))
+    .input("fecha", sql.Date, toNull(fecha))
+    .input("idBusinessUnit", sql.Int, toIntOrNull(idBusinessUnit))
+    .input("businessUnit", sql.NVarChar(sql.MAX), businessUnit)
+    .input("idProductionLine", sql.Int, toIntOrNull(idProductionLine))
+    .input("productionLine", sql.NVarChar(sql.MAX), productionLine)
+    .input("idModulo", sql.Int, toIntOrNull(idModulo))
+    .input("modulo", sql.NVarChar(sql.MAX), modulo)
+    .input("idPregunta", sql.Int, toIntOrNull(idPregunta))
+    .input("pregunta", sql.NVarChar(sql.MAX), pregunta)
+    .input("accionRequerida", sql.NVarChar(sql.MAX), accionRequerida)
+    .input("responsable", sql.NVarChar(sql.MAX), responsable || "")
+    .input("fechaCompromiso", sql.Date, toNull(fechaCompromiso))
+    .input("fechaCierre", sql.Date, toNull(fechaCierre))
+    .input("estado", sql.NVarChar(sql.MAX), estado)
+    .query(`
+      UPDATE action_plans
+      SET
+        fecha = @fecha,
+        id_business_unit = @idBusinessUnit,
+        business_unit = @businessUnit,
+        id_production_line = @idProductionLine,
+        production_line = @productionLine,
+        id_modulo = @idModulo,
+        modulo = @modulo,
+        id_pregunta = @idPregunta,
+        pregunta = @pregunta,
+        accion_requerida = @accionRequerida,
+        responsable = @responsable,
+        fecha_compromiso = @fechaCompromiso,
+        fecha_cierre = @fechaCierre,
+        estado = @estado,
+        actualizado_en = GETDATE()
+      OUTPUT
+        INSERTED.id_action_plan AS id,
+        INSERTED.fecha,
+        INSERTED.id_usuario AS creadoPorId,
+        INSERTED.creado_por AS creadoPor,
+        INSERTED.id_business_unit AS idBusinessUnit,
+        INSERTED.business_unit AS businessUnit,
+        INSERTED.id_production_line AS idProductionLine,
+        INSERTED.production_line AS productionLine,
+        INSERTED.id_modulo AS idModulo,
+        INSERTED.modulo,
+        INSERTED.id_pregunta AS idPregunta,
+        INSERTED.pregunta,
+        INSERTED.accion_requerida AS accionRequerida,
+        INSERTED.responsable,
+        INSERTED.fecha_compromiso AS fechaCompromiso,
+        INSERTED.fecha_cierre AS fechaCierre,
+        INSERTED.estado
+      WHERE id_action_plan = @id
+    `);
 
-  const result = await pool.query(query, values);
-  return result.rows[0] || null;
+  return result.recordset[0] || null;
 }
 
 // ======================================================
 // CERRAR PLAN DE ACCIÓN
 // ======================================================
 async function cerrarActionPlan(id) {
-  const query = `
-    UPDATE action_plans
-    SET
-      fecha_cierre = CURRENT_DATE,
-      estado = 'CERRADO',
-      actualizado_en = CURRENT_TIMESTAMP
-    WHERE id_action_plan = $1
-    RETURNING
-      id_action_plan AS id,
-      fecha,
-      id_usuario AS "creadoPorId",
-      creado_por AS "creadoPor",
-      id_business_unit AS "idBusinessUnit",
-      business_unit AS "businessUnit",
-      id_production_line AS "idProductionLine",
-      production_line AS "productionLine",
-      id_modulo AS "idModulo",
-      modulo,
-      id_pregunta AS "idPregunta",
-      pregunta,
-      accion_requerida AS "accionRequerida",
-      responsable,
-      fecha_compromiso AS "fechaCompromiso",
-      fecha_cierre AS "fechaCierre",
-      estado
-  `;
+  const pool = await getPool();
 
-  const result = await pool.query(query, [id]);
-  return result.rows[0] || null;
+  const result = await pool
+    .request()
+    .input("id", sql.Int, Number(id))
+    .query(`
+      UPDATE action_plans
+      SET
+        fecha_cierre = CAST(GETDATE() AS date),
+        estado = 'CERRADO',
+        actualizado_en = GETDATE()
+      OUTPUT
+        INSERTED.id_action_plan AS id,
+        INSERTED.fecha,
+        INSERTED.id_usuario AS creadoPorId,
+        INSERTED.creado_por AS creadoPor,
+        INSERTED.id_business_unit AS idBusinessUnit,
+        INSERTED.business_unit AS businessUnit,
+        INSERTED.id_production_line AS idProductionLine,
+        INSERTED.production_line AS productionLine,
+        INSERTED.id_modulo AS idModulo,
+        INSERTED.modulo,
+        INSERTED.id_pregunta AS idPregunta,
+        INSERTED.pregunta,
+        INSERTED.accion_requerida AS accionRequerida,
+        INSERTED.responsable,
+        INSERTED.fecha_compromiso AS fechaCompromiso,
+        INSERTED.fecha_cierre AS fechaCierre,
+        INSERTED.estado
+      WHERE id_action_plan = @id
+    `);
+
+  return result.recordset[0] || null;
 }
 
 // ======================================================
 // ELIMINAR PLAN DE ACCIÓN
 // ======================================================
 async function eliminarActionPlan(id) {
-  const query = `
-    DELETE FROM action_plans
-    WHERE id_action_plan = $1
-    RETURNING id_action_plan AS id
-  `;
+  const pool = await getPool();
 
-  const result = await pool.query(query, [id]);
-  return result.rows[0] || null;
+  const result = await pool
+    .request()
+    .input("id", sql.Int, Number(id))
+    .query(`
+      DELETE FROM action_plans
+      OUTPUT DELETED.id_action_plan AS id
+      WHERE id_action_plan = @id
+    `);
+
+  return result.recordset[0] || null;
 }
 
 // ======================================================
