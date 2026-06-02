@@ -5,12 +5,14 @@
   // CONFIG GENERAL
   // ======================================================
   const APP_CONFIG_KEY = "appConfig";
-  const API_BASE = "http://localhost:3000";
 
-  // Fallback local por si el endpoint de módulos no existe
+  // En Azure debe quedarse vacío para usar el mismo dominio.
+  // NO usar http://localhost:3000 en Azure.
+  const API_BASE = "";
+
   const MODULOS_FALLBACK = [
     { id: "1", name: "Manufacturing Strategy" },
-    { id: "2", name: "Lean Foundations" },
+    { id: "2", name: "Foundations" },
     { id: "3", name: "High Performance Teams" },
     { id: "4", name: "Quality at Source" },
     { id: "5", name: "Safety First" },
@@ -32,14 +34,12 @@
     initializeConfig();
     initTabs();
     bindEvents();
-
     renderAll();
 
     await cargarUsuariosDesdeBD();
     await cargarModulosDesdeBD();
     await cargarPreguntasDesdeBD();
-    await cargarBusinessUnitsDesdeBD();
-    await cargarProductionLinesDesdeBD();
+    await cargarCatalogosDesdeBD();
 
     renderAll();
   });
@@ -198,11 +198,18 @@
   // ======================================================
   async function cargarUsuariosDesdeBD() {
     try {
-      const res = await fetch(`${API_BASE}/api/usuarios`);
+      const res = await fetch(`${API_BASE}/api/usuarios?t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store"
+      });
+
       if (!res.ok) throw new Error("No se pudieron obtener usuarios desde la base de datos.");
 
       const data = await res.json();
-      if (!Array.isArray(data)) throw new Error("La respuesta de usuarios no es un arreglo.");
+
+      if (!Array.isArray(data)) {
+        throw new Error("La respuesta de usuarios no es un arreglo.");
+      }
 
       const config = getConfig();
       config.users = data.map(mapUserFromDb);
@@ -210,14 +217,17 @@
       saveConfig(config);
       renderUsers();
     } catch (error) {
-      console.error("❌ Error cargando usuarios desde BD:", error);
+      console.error("Error cargando usuarios desde BD:", error);
       renderUsers();
     }
   }
 
   async function cargarModulosDesdeBD() {
     try {
-      const res = await fetch(`${API_BASE}/api/modulos`);
+      const res = await fetch(`${API_BASE}/api/modulos?t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store"
+      });
 
       if (!res.ok) {
         throw new Error("No se pudieron obtener módulos desde la base de datos.");
@@ -235,7 +245,7 @@
       saveConfig(config);
       fillQuestionModuleSelect();
     } catch (error) {
-      console.warn("⚠️ Usando módulos fallback:", error.message);
+      console.warn("Usando módulos fallback:", error.message);
 
       const config = getConfig();
 
@@ -255,7 +265,9 @@
         cache: "no-store"
       });
 
-      if (!res.ok) throw new Error("No se pudieron obtener preguntas desde la base de datos.");
+      if (!res.ok) {
+        throw new Error("No se pudieron obtener preguntas desde la base de datos.");
+      }
 
       const data = await res.json();
 
@@ -271,63 +283,59 @@
       saveConfig(config);
       renderQuestions();
     } catch (error) {
-      console.error("❌ Error cargando preguntas desde BD:", error);
+      console.error("Error cargando preguntas desde BD:", error);
       renderQuestions();
     }
   }
 
-  async function cargarBusinessUnitsDesdeBD() {
+  async function cargarCatalogosDesdeBD() {
     try {
-      const res = await fetch(`${API_BASE}/api/business-units`);
+      const res = await fetch(`${API_BASE}/api/catalogos?t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store"
+      });
 
       if (!res.ok) {
-        throw new Error("No se pudieron obtener Business Units desde la base de datos.");
+        throw new Error("No se pudieron obtener catálogos desde la base de datos.");
       }
 
       const data = await res.json();
 
-      if (!Array.isArray(data)) {
-        throw new Error("La respuesta de Business Units no es un arreglo.");
+      if (!data.ok) {
+        throw new Error(data.error || data.message || "La API de catálogos respondió ok=false.");
       }
 
+      const businessUnits = Array.isArray(data.businessUnits) ? data.businessUnits : [];
+      const productionLines = Array.isArray(data.productionLines) ? data.productionLines : [];
+
       const config = getConfig();
-      config.businessUnits = data.map(mapBusinessUnitFromDb);
+
+      config.businessUnits = businessUnits.map(mapBusinessUnitFromDb);
+      config.productionLines = productionLines.map(mapProductionLineFromDb);
 
       saveConfig(config);
+
       fillBusinessUnitSelect();
       renderBusinessUnits();
+      renderProductionLines();
+
+      console.log("Business Units cargadas en configuración:", config.businessUnits);
+      console.log("Production Lines cargadas en configuración:", config.productionLines);
     } catch (error) {
-      console.error("❌ Error cargando Business Units desde BD:", error);
+      console.error("Error cargando catálogos desde BD:", error);
+
       fillBusinessUnitSelect();
       renderBusinessUnits();
+      renderProductionLines();
     }
   }
 
+  async function cargarBusinessUnitsDesdeBD() {
+    await cargarCatalogosDesdeBD();
+  }
+
   async function cargarProductionLinesDesdeBD() {
-    try {
-      const res = await fetch(`${API_BASE}/api/production-lines`);
-
-      if (!res.ok) {
-        throw new Error("No se pudieron obtener Production Lines desde la base de datos.");
-      }
-
-      const data = await res.json();
-
-      if (!Array.isArray(data)) {
-        throw new Error("La respuesta de Production Lines no es un arreglo.");
-      }
-
-      const config = getConfig();
-      config.productionLines = data.map(mapProductionLineFromDb);
-
-      saveConfig(config);
-      renderProductionLines();
-      renderBusinessUnits();
-    } catch (error) {
-      console.error("❌ Error cargando Production Lines desde BD:", error);
-      renderProductionLines();
-      renderBusinessUnits();
-    }
+    await cargarCatalogosDesdeBD();
   }
 
   // ======================================================
@@ -344,7 +352,7 @@
     ];
 
     function hideAllPanels() {
-      panelIds.forEach((id) => {
+      panelIds.forEach(id => {
         const panel = document.getElementById(id);
         if (!panel) return;
 
@@ -361,11 +369,11 @@
       panel.style.display = "block";
     }
 
-    buttons.forEach((btn) => {
+    buttons.forEach(btn => {
       btn.addEventListener("click", function () {
         const tab = btn.dataset.tab;
 
-        buttons.forEach((b) => b.classList.remove("active"));
+        buttons.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
 
         hideAllPanels();
@@ -381,11 +389,9 @@
   // EVENTS
   // ======================================================
   function bindEvents() {
-    // Preguntas
     document.getElementById("saveQuestionBtn")?.addEventListener("click", saveQuestion);
     document.getElementById("clearQuestionBtn")?.addEventListener("click", clearQuestionForm);
 
-    // Cuando cambies el módulo, filtra la tabla de preguntas
     document.getElementById("questionModule")?.addEventListener("change", function () {
       safeSetValue("questionId", "");
       safeSetValue("questionText", "");
@@ -394,15 +400,12 @@
       renderQuestions();
     });
 
-    // Usuarios
     document.getElementById("saveUserBtn")?.addEventListener("click", saveUser);
     document.getElementById("clearUserBtn")?.addEventListener("click", clearUserForm);
 
-    // Business Units
     document.getElementById("saveBusinessUnitBtn")?.addEventListener("click", saveBusinessUnit);
     document.getElementById("clearBusinessUnitBtn")?.addEventListener("click", clearBusinessUnitForm);
 
-    // Production Lines
     document.getElementById("saveProductionLineBtn")?.addEventListener("click", saveProductionLine);
     document.getElementById("clearProductionLineBtn")?.addEventListener("click", clearProductionLineForm);
   }
@@ -507,19 +510,18 @@
       safeSetValue("questionModule", String(moduleId));
 
       await cargarPreguntasDesdeBD();
-
       renderQuestions();
 
       alert(id ? "Pregunta actualizada correctamente." : "Pregunta creada correctamente.");
     } catch (error) {
-      console.error("❌ Error guardando pregunta:", error);
+      console.error("Error guardando pregunta:", error);
       alert(error.message || "No se pudo guardar la pregunta.");
     }
   }
 
   function editQuestion(id) {
     const config = getConfig();
-    const item = config.questions.find((q) => String(q.id) === String(id));
+    const item = config.questions.find(q => String(q.id) === String(id));
 
     if (!item) return;
 
@@ -559,7 +561,7 @@
 
       alert("Pregunta eliminada correctamente.");
     } catch (error) {
-      console.error("❌ Error eliminando pregunta:", error);
+      console.error("Error eliminando pregunta:", error);
       alert(error.message || "No se pudo eliminar la pregunta.");
     }
   }
@@ -581,7 +583,6 @@
     if (!tbody) return;
 
     const config = getConfig();
-
     const selectedModuleId = safeGetValue("questionModule");
 
     let items = Array.isArray(config.questions)
@@ -589,7 +590,7 @@
       : [];
 
     if (selectedModuleId) {
-      items = items.filter((q) => String(q.moduleId) === String(selectedModuleId));
+      items = items.filter(q => String(q.moduleId) === String(selectedModuleId));
     }
 
     items = items.sort((a, b) => {
@@ -611,7 +612,7 @@
       return;
     }
 
-    tbody.innerHTML = items.map((item) => `
+    tbody.innerHTML = items.map(item => `
       <tr>
         <td>${escapeHTML(item.order)}</td>
         <td>${escapeHTML(item.text)}</td>
@@ -629,11 +630,11 @@
       </tr>
     `).join("");
 
-    tbody.querySelectorAll("[data-edit-question]").forEach((btn) => {
+    tbody.querySelectorAll("[data-edit-question]").forEach(btn => {
       btn.addEventListener("click", () => editQuestion(btn.dataset.editQuestion));
     });
 
-    tbody.querySelectorAll("[data-delete-question]").forEach((btn) => {
+    tbody.querySelectorAll("[data-delete-question]").forEach(btn => {
       btn.addEventListener("click", () => deleteQuestion(btn.dataset.deleteQuestion));
     });
   }
@@ -705,14 +706,14 @@
 
       alert(id ? "Usuario actualizado correctamente." : "Usuario creado correctamente.");
     } catch (error) {
-      console.error("❌ Error guardando usuario:", error);
+      console.error("Error guardando usuario:", error);
       alert(error.message || "No se pudo guardar el usuario.");
     }
   }
 
   function editUser(id) {
     const config = getConfig();
-    const item = config.users.find((u) => String(u.id) === String(id));
+    const item = config.users.find(u => String(u.id) === String(id));
 
     if (!item) return;
 
@@ -746,7 +747,7 @@
 
       alert("Usuario eliminado correctamente.");
     } catch (error) {
-      console.error("❌ Error eliminando usuario:", error);
+      console.error("Error eliminando usuario:", error);
       alert(error.message || "No se pudo eliminar el usuario.");
     }
   }
@@ -771,7 +772,7 @@
       return;
     }
 
-    tbody.innerHTML = config.users.map((item) => `
+    tbody.innerHTML = config.users.map(item => `
       <tr>
         <td>${escapeHTML(item.name)}</td>
         <td>${escapeHTML(item.username || "")}</td>
@@ -790,11 +791,11 @@
       </tr>
     `).join("");
 
-    tbody.querySelectorAll("[data-edit-user]").forEach((btn) => {
+    tbody.querySelectorAll("[data-edit-user]").forEach(btn => {
       btn.addEventListener("click", () => editUser(btn.dataset.editUser));
     });
 
-    tbody.querySelectorAll("[data-delete-user]").forEach((btn) => {
+    tbody.querySelectorAll("[data-delete-user]").forEach(btn => {
       btn.addEventListener("click", () => deleteUser(btn.dataset.deleteUser));
     });
   }
@@ -840,19 +841,18 @@
 
       clearBusinessUnitForm();
 
-      await cargarBusinessUnitsDesdeBD();
-      await cargarProductionLinesDesdeBD();
+      await cargarCatalogosDesdeBD();
 
       alert(id ? "Business Unit actualizada correctamente." : "Business Unit creada correctamente.");
     } catch (error) {
-      console.error("❌ Error guardando Business Unit:", error);
+      console.error("Error guardando Business Unit:", error);
       alert(error.message || "No se pudo guardar la Business Unit.");
     }
   }
 
   function editBusinessUnit(id) {
     const config = getConfig();
-    const item = config.businessUnits.find((b) => String(b.id) === String(id));
+    const item = config.businessUnits.find(b => String(b.id) === String(id));
 
     if (!item) return;
 
@@ -880,12 +880,11 @@
 
       clearBusinessUnitForm();
 
-      await cargarBusinessUnitsDesdeBD();
-      await cargarProductionLinesDesdeBD();
+      await cargarCatalogosDesdeBD();
 
       alert("Business Unit eliminada correctamente.");
     } catch (error) {
-      console.error("❌ Error eliminando Business Unit:", error);
+      console.error("Error eliminando Business Unit:", error);
       alert(error.message || "No se pudo eliminar la Business Unit.");
     }
   }
@@ -910,8 +909,8 @@
 
     tbody.innerHTML = businessUnits
       .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es"))
-      .map((item) => {
-        const countLines = productionLines.filter((pl) => String(pl.businessUnitId) === String(item.id)).length;
+      .map(item => {
+        const countLines = productionLines.filter(pl => String(pl.businessUnitId) === String(item.id)).length;
 
         return `
           <tr>
@@ -931,11 +930,11 @@
         `;
       }).join("");
 
-    tbody.querySelectorAll("[data-edit-bu]").forEach((btn) => {
+    tbody.querySelectorAll("[data-edit-bu]").forEach(btn => {
       btn.addEventListener("click", () => editBusinessUnit(btn.dataset.editBu));
     });
 
-    tbody.querySelectorAll("[data-delete-bu]").forEach((btn) => {
+    tbody.querySelectorAll("[data-delete-bu]").forEach(btn => {
       btn.addEventListener("click", () => deleteBusinessUnit(btn.dataset.deleteBu));
     });
   }
@@ -961,7 +960,7 @@
       <option value="">Selecciona Business Unit</option>
       ${businessUnits
         .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es"))
-        .map((item) => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)}</option>`)
+        .map(item => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)}</option>`)
         .join("")}
     `;
 
@@ -1027,19 +1026,18 @@
 
       clearProductionLineForm();
 
-      await cargarProductionLinesDesdeBD();
-      await cargarBusinessUnitsDesdeBD();
+      await cargarCatalogosDesdeBD();
 
       alert(id ? "Production Line actualizada correctamente." : "Production Line creada correctamente.");
     } catch (error) {
-      console.error("❌ Error guardando Production Line:", error);
+      console.error("Error guardando Production Line:", error);
       alert(error.message || "No se pudo guardar la Production Line.");
     }
   }
 
   function editProductionLine(id) {
     const config = getConfig();
-    const item = config.productionLines.find((pl) => String(pl.id) === String(id));
+    const item = config.productionLines.find(pl => String(pl.id) === String(id));
 
     if (!item) return;
 
@@ -1068,12 +1066,11 @@
 
       clearProductionLineForm();
 
-      await cargarProductionLinesDesdeBD();
-      await cargarBusinessUnitsDesdeBD();
+      await cargarCatalogosDesdeBD();
 
       alert("Production Line eliminada correctamente.");
     } catch (error) {
-      console.error("❌ Error eliminando Production Line:", error);
+      console.error("Error eliminando Production Line:", error);
       alert(error.message || "No se pudo eliminar la Production Line.");
     }
   }
@@ -1105,7 +1102,7 @@
 
         return String(a.name || "").localeCompare(String(b.name || ""), "es");
       })
-      .map((item) => `
+      .map(item => `
         <tr>
           <td>${escapeHTML(item.name)}</td>
           <td>${escapeHTML(item.businessUnitName || "")}</td>
@@ -1122,11 +1119,11 @@
         </tr>
       `).join("");
 
-    tbody.querySelectorAll("[data-edit-pl]").forEach((btn) => {
+    tbody.querySelectorAll("[data-edit-pl]").forEach(btn => {
       btn.addEventListener("click", () => editProductionLine(btn.dataset.editPl));
     });
 
-    tbody.querySelectorAll("[data-delete-pl]").forEach((btn) => {
+    tbody.querySelectorAll("[data-delete-pl]").forEach(btn => {
       btn.addEventListener("click", () => deleteProductionLine(btn.dataset.deletePl));
     });
   }
@@ -1144,9 +1141,9 @@
       "tab-productionLines"
     ];
 
-    buttons.forEach((b) => b.classList.remove("active"));
+    buttons.forEach(b => b.classList.remove("active"));
 
-    panels.forEach((id) => {
+    panels.forEach(id => {
       const panel = document.getElementById(id);
 
       if (!panel) return;
