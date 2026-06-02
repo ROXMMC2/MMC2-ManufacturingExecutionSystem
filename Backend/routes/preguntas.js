@@ -1,127 +1,156 @@
-const express = require("express");
-const router = express.Router();
-const pool = require("../db");
+// ======================================================
+// HELPERS
+// ======================================================
+function toInt(value) {
+  const n = Number(value);
+
+  if (!Number.isFinite(n)) {
+    return null;
+  }
+
+  return n;
+}
+
+function isValidPositiveInt(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0;
+}
 
 // ======================================================
-// GET MODULOS
 // GET /api/modulos
+// Obtener todos los módulos
 // ======================================================
 router.get("/modulos", async (req, res) => {
   try {
-    const result = await pool.query(`
+    const pool = await getPool();
+
+    const result = await pool.request().query(`
       SELECT
         idmodulo,
-        nombre
-      FROM modulos
+const express = require("express");
+const router = express.Router();
+
+const { sql, getPool } = requireconst { sql, getPool } = require("../db");
+      FROM dbo.modulos
       ORDER BY idmodulo ASC
     `);
 
-    res.json(result.rows);
+    res.json(result.recordset);
   } catch (error) {
     console.error("❌ Error obteniendo módulos:", error);
 
     res.status(500).json({
       ok: false,
       error: "Error obteniendo módulos",
-      detalle: error.message
+      detalle: error.message,
+      codigo: error.code || null,
+      number: error.number || null,
+      lineNumber: error.lineNumber || null
     });
   }
 });
 
 // ======================================================
-// GET PREGUNTAS
 // GET /api/preguntas
+// Obtener todas las preguntas con su módulo
 // ======================================================
 router.get("/preguntas", async (req, res) => {
   try {
-    const result = await pool.query(`
+    const pool = await getPool();
+
+    const result = await pool.request().query(`
       SELECT
         p.idpregunta,
         p.idmodulo,
         m.nombre AS modulo,
         p.texto,
         p.orden
-      FROM preguntas p
-      INNER JOIN modulos m
+      FROM dbo.preguntas p
+      INNER JOIN dbo.modulos m
         ON p.idmodulo = m.idmodulo
-      ORDER BY 
+      ORDER BY
         p.idmodulo ASC,
         p.orden ASC,
         p.idpregunta ASC
     `);
 
-    res.json(result.rows);
+    res.json(result.recordset);
   } catch (error) {
     console.error("❌ Error obteniendo preguntas:", error);
 
     res.status(500).json({
       ok: false,
       error: "Error obteniendo preguntas",
-      detalle: error.message
+      detalle: error.message,
+      codigo: error.code || null,
+      number: error.number || null,
+      lineNumber: error.lineNumber || null
     });
   }
 });
 
 // ======================================================
-// POST PREGUNTA
 // POST /api/preguntas
+// Crear pregunta
 // Body esperado:
 // {
-//   "texto": "Nueva pregunta...",
+//   "texto": "Nueva pregunta",
 //   "idmodulo": 1,
-//   "orden": 1 opcional
+//   "orden": 1
 // }
 // ======================================================
 router.post("/preguntas", async (req, res) => {
-  const client = await pool.connect();
+  const texto = String(req.body.texto || "").trim();
+  const idmodulo = toInt(req.body.idmodulo);
+
+  const ordenBody =
+    req.body.orden === null ||
+    req.body.orden === undefined ||
+    req.body.orden === ""
+      ? null
+      : toInt(req.body.orden);
+
+  if (!texto) {
+    return res.status(400).json({
+      ok: false,
+      error: "El texto de la pregunta es obligatorio."
+    });
+  }
+
+  if (!isValidPositiveInt(idmodulo)) {
+    return res.status(400).json({
+      ok: false,
+      error: "El idmodulo es obligatorio y debe ser numérico."
+    });
+  }
+
+  if (ordenBody !== null && !isValidPositiveInt(ordenBody)) {
+    return res.status(400).json({
+      ok: false,
+      error: "El número de pregunta debe ser mayor o igual a 1."
+    });
+  }
+
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
 
   try {
-    const texto = String(req.body.texto || "").trim();
-    const idmodulo = Number(req.body.idmodulo);
-
-    const ordenBody =
-      req.body.orden === null ||
-      req.body.orden === undefined ||
-      req.body.orden === ""
-        ? null
-        : Number(req.body.orden);
-
-    if (!texto) {
-      return res.status(400).json({
-        ok: false,
-        error: "El texto de la pregunta es obligatorio."
-      });
-    }
-
-    if (!Number.isFinite(idmodulo) || idmodulo <= 0) {
-      return res.status(400).json({
-        ok: false,
-        error: "El idmodulo es obligatorio y debe ser numérico."
-      });
-    }
-
-    if (ordenBody !== null && (!Number.isFinite(ordenBody) || ordenBody <= 0)) {
-      return res.status(400).json({
-        ok: false,
-        error: "El número de pregunta debe ser mayor o igual a 1."
-      });
-    }
-
-    await client.query("BEGIN");
+    await transaction.begin();
 
     // Validar que exista el módulo
-    const moduloExiste = await client.query(
-      `
-      SELECT idmodulo
-      FROM modulos
-      WHERE idmodulo = $1
-      LIMIT 1
-      `,
-      [idmodulo]
-    );
+    const moduloRequest = new sql.Request(transaction);
 
-    if (moduloExiste.rows.length === 0) {
-      await client.query("ROLLBACK");
+    const moduloExiste = await moduloRequest
+      .input("idmodulo", sql.Int, idmodulo)
+      .query(`
+        SELECT TOP 1
+          idmodulo
+        FROM dbo.modulos
+        WHERE idmodulo = @idmodulo
+      `);
+
+    if (moduloExiste.recordset.length === 0) {
+      await transaction.rollback();
 
       return res.status(404).json({
         ok: false,
@@ -129,137 +158,164 @@ router.post("/preguntas", async (req, res) => {
       });
     }
 
+    // Obtener el máximo orden actual del módulo
+    const maxOrdenRequest = new sql.Request(transaction);
+
+    const maxOrdenResult = await maxOrdenRequest
+      .input("idmodulo", sql.Int, idmodulo)
+      .query(`
+        SELECT
+          ISNULL(MAX(orden), 0) AS maxOrden
+        FROM dbo.preguntas
+        WHERE idmodulo = @idmodulo
+      `);
+
+    const maxOrden = Number(maxOrdenResult.recordset[0].maxOrden || 0);
+
     let ordenFinal = ordenBody;
 
-    // Si no mandan orden, asigna el siguiente número disponible
+    // Si no mandan orden, asigna el siguiente
     if (ordenFinal === null) {
-      const maxOrdenResult = await client.query(
-        `
-        SELECT COALESCE(MAX(orden), 0) + 1 AS siguiente_orden
-        FROM preguntas
-        WHERE idmodulo = $1
-        `,
-        [idmodulo]
-      );
-
-      ordenFinal = Number(maxOrdenResult.rows[0].siguiente_orden);
-    } else {
-      /*
-        Si insertas una nueva pregunta en un número que ya existe,
-        recorremos las demás hacia abajo.
-        Ejemplo:
-        existentes: 1, 2, 3
-        nueva con orden 2
-        resultado: nueva = 2, antigua 2 = 3, antigua 3 = 4
-      */
-      await client.query(
-        `
-        UPDATE preguntas
-        SET orden = orden + 1
-        WHERE idmodulo = $1
-          AND orden >= $2
-        `,
-        [idmodulo, ordenFinal]
-      );
+      ordenFinal = maxOrden + 1;
     }
 
-    const result = await client.query(
-      `
-      INSERT INTO preguntas (texto, idmodulo, orden)
-      VALUES ($1, $2, $3)
-      RETURNING idpregunta, texto, idmodulo, orden
-      `,
-      [texto, idmodulo, ordenFinal]
-    );
+    // Si mandan un orden mayor al máximo permitido, se ajusta
+    if (ordenFinal > maxOrden + 1) {
+      ordenFinal = maxOrden + 1;
+    }
 
-    await client.query("COMMIT");
+    // Abrir espacio si insertan en una posición ya existente
+    const shiftRequest = new sql.Request(transaction);
+
+    await shiftRequest
+      .input("idmodulo", sql.Int, idmodulo)
+      .input("ordenFinal", sql.Int, ordenFinal)
+      .query(`
+        UPDATE dbo.preguntas
+        SET orden = orden + 1
+        WHERE idmodulo = @idmodulo
+          AND orden >= @ordenFinal
+      `);
+
+    // Insertar pregunta
+    const insertRequest = new sql.Request(transaction);
+
+    const result = await insertRequest
+      .input("texto", sql.NVarChar(255), texto)
+      .input("idmodulo", sql.Int, idmodulo)
+      .input("orden", sql.Int, ordenFinal)
+      .query(`
+        INSERT INTO dbo.preguntas (
+          texto,
+          idmodulo,
+          orden
+        )
+        OUTPUT
+          INSERTED.idpregunta,
+          INSERTED.texto,
+          INSERTED.idmodulo,
+          INSERTED.orden
+        VALUES (
+          @texto,
+          @idmodulo,
+          @orden
+        )
+      `);
+
+    await transaction.commit();
 
     res.status(201).json({
       ok: true,
       message: "Pregunta creada correctamente.",
-      pregunta: result.rows[0]
+      pregunta: result.recordset[0]
     });
   } catch (error) {
-    await client.query("ROLLBACK");
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      console.error("❌ Error haciendo rollback:", rollbackError);
+    }
 
     console.error("❌ Error creando pregunta:", error);
 
     res.status(500).json({
       ok: false,
       error: "Error creando pregunta",
-      detalle: error.message
+      detalle: error.message,
+      codigo: error.code || null,
+      number: error.number || null,
+      lineNumber: error.lineNumber || null
     });
-  } finally {
-    client.release();
   }
 });
 
 // ======================================================
-// PUT PREGUNTA CON INTERCAMBIO DE ORDEN
 // PUT /api/preguntas/:id
+// Actualizar pregunta y reordenar
 // Body esperado:
 // {
-//   "texto": "Pregunta editada...",
+//   "texto": "Pregunta editada",
 //   "idmodulo": 1,
 //   "orden": 2
 // }
 // ======================================================
 router.put("/preguntas/:id", async (req, res) => {
-  const client = await pool.connect();
+  const id = toInt(req.params.id);
+  const texto = String(req.body.texto || "").trim();
+  const idmodulo = toInt(req.body.idmodulo);
+  const ordenNuevoRaw = toInt(req.body.orden);
+
+  if (!isValidPositiveInt(id)) {
+    return res.status(400).json({
+      ok: false,
+      error: "El ID de la pregunta no es válido."
+    });
+  }
+
+  if (!texto) {
+    return res.status(400).json({
+      ok: false,
+      error: "El texto de la pregunta es obligatorio."
+    });
+  }
+
+  if (!isValidPositiveInt(idmodulo)) {
+    return res.status(400).json({
+      ok: false,
+      error: "El idmodulo es obligatorio y debe ser numérico."
+    });
+  }
+
+  if (!isValidPositiveInt(ordenNuevoRaw)) {
+    return res.status(400).json({
+      ok: false,
+      error: "El número de pregunta es obligatorio y debe ser mayor o igual a 1."
+    });
+  }
+
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
 
   try {
-    const id = Number(req.params.id);
-    const texto = String(req.body.texto || "").trim();
-    const idmodulo = Number(req.body.idmodulo);
-    const ordenNuevo = Number(req.body.orden);
+    await transaction.begin();
 
-    if (!Number.isFinite(id) || id <= 0) {
-      return res.status(400).json({
-        ok: false,
-        error: "El ID de la pregunta no es válido."
-      });
-    }
+    // Obtener pregunta actual
+    const preguntaActualRequest = new sql.Request(transaction);
 
-    if (!texto) {
-      return res.status(400).json({
-        ok: false,
-        error: "El texto de la pregunta es obligatorio."
-      });
-    }
+    const preguntaActualResult = await preguntaActualRequest
+      .input("idpregunta", sql.Int, id)
+      .query(`
+        SELECT TOP 1
+          idpregunta,
+          texto,
+          idmodulo,
+          orden
+        FROM dbo.preguntas
+        WHERE idpregunta = @idpregunta
+      `);
 
-    if (!Number.isFinite(idmodulo) || idmodulo <= 0) {
-      return res.status(400).json({
-        ok: false,
-        error: "El idmodulo es obligatorio y debe ser numérico."
-      });
-    }
-
-    if (!Number.isFinite(ordenNuevo) || ordenNuevo <= 0) {
-      return res.status(400).json({
-        ok: false,
-        error: "El número de pregunta es obligatorio y debe ser mayor o igual a 1."
-      });
-    }
-
-    await client.query("BEGIN");
-
-    // Validar que exista la pregunta actual
-    const preguntaActualResult = await client.query(
-      `
-      SELECT 
-        idpregunta,
-        texto,
-        idmodulo,
-        orden
-      FROM preguntas
-      WHERE idpregunta = $1
-      LIMIT 1
-      `,
-      [id]
-    );
-
-    if (preguntaActualResult.rows.length === 0) {
-      await client.query("ROLLBACK");
+    if (preguntaActualResult.recordset.length === 0) {
+      await transaction.rollback();
 
       return res.status(404).json({
         ok: false,
@@ -267,23 +323,25 @@ router.put("/preguntas/:id", async (req, res) => {
       });
     }
 
-    const preguntaActual = preguntaActualResult.rows[0];
+    const preguntaActual = preguntaActualResult.recordset[0];
+
     const moduloAnterior = Number(preguntaActual.idmodulo);
     const ordenAnterior = Number(preguntaActual.orden);
 
-    // Validar que exista el módulo destino
-    const moduloExiste = await client.query(
-      `
-      SELECT idmodulo
-      FROM modulos
-      WHERE idmodulo = $1
-      LIMIT 1
-      `,
-      [idmodulo]
-    );
+    // Validar módulo destino
+    const moduloRequest = new sql.Request(transaction);
 
-    if (moduloExiste.rows.length === 0) {
-      await client.query("ROLLBACK");
+    const moduloExiste = await moduloRequest
+      .input("idmodulo", sql.Int, idmodulo)
+      .query(`
+        SELECT TOP 1
+          idmodulo
+        FROM dbo.modulos
+        WHERE idmodulo = @idmodulo
+      `);
+
+    if (moduloExiste.recordset.length === 0) {
+      await transaction.rollback();
 
       return res.status(404).json({
         ok: false,
@@ -291,167 +349,246 @@ router.put("/preguntas/:id", async (req, res) => {
       });
     }
 
-    // Si no cambió módulo ni orden, solo actualiza texto
-    if (moduloAnterior === idmodulo && ordenAnterior === ordenNuevo) {
-      const result = await client.query(
-        `
-        UPDATE preguntas
-        SET texto = $1
-        WHERE idpregunta = $2
-        RETURNING idpregunta, texto, idmodulo, orden
-        `,
-        [texto, id]
-      );
+    // Contar preguntas en módulo destino, excluyendo la actual
+    const countRequest = new sql.Request(transaction);
 
-      await client.query("COMMIT");
+    const countResult = await countRequest
+      .input("idmodulo", sql.Int, idmodulo)
+      .input("idpregunta", sql.Int, id)
+      .query(`
+        SELECT
+          COUNT(*) AS total
+        FROM dbo.preguntas
+        WHERE idmodulo = @idmodulo
+          AND idpregunta <> @idpregunta
+      `);
+
+    const totalDestino = Number(countResult.recordset[0].total || 0);
+
+    let ordenNuevo = ordenNuevoRaw;
+
+    if (ordenNuevo > totalDestino + 1) {
+      ordenNuevo = totalDestino + 1;
+    }
+
+    // Si solo cambió texto
+    if (moduloAnterior === idmodulo && ordenAnterior === ordenNuevo) {
+      const updateTextRequest = new sql.Request(transaction);
+
+      const result = await updateTextRequest
+        .input("idpregunta", sql.Int, id)
+        .input("texto", sql.NVarChar(255), texto)
+        .query(`
+          UPDATE dbo.preguntas
+          SET texto = @texto
+          OUTPUT
+            INSERTED.idpregunta,
+            INSERTED.texto,
+            INSERTED.idmodulo,
+            INSERTED.orden
+          WHERE idpregunta = @idpregunta
+        `);
+
+      await transaction.commit();
 
       return res.json({
         ok: true,
         message: "Pregunta actualizada correctamente.",
-        pregunta: result.rows[0]
+        pregunta: result.recordset[0]
       });
     }
 
-    // Buscar si ya existe otra pregunta con ese orden en el módulo destino
-    const preguntaConEseOrdenResult = await client.query(
-      `
-      SELECT 
-        idpregunta,
-        orden,
-        idmodulo
-      FROM preguntas
-      WHERE idmodulo = $1
-        AND orden = $2
-        AND idpregunta <> $3
-      LIMIT 1
-      `,
-      [idmodulo, ordenNuevo, id]
-    );
+    // Mover temporalmente para evitar conflicto con UNIQUE(idmodulo, orden)
+    const tempRequest = new sql.Request(transaction);
 
-    const existeOtraPregunta = preguntaConEseOrdenResult.rows.length > 0;
+    await tempRequest
+      .input("idpregunta", sql.Int, id)
+      .input("ordenTemporal", sql.Int, -999999)
+      .query(`
+        UPDATE dbo.preguntas
+        SET orden = @ordenTemporal
+        WHERE idpregunta = @idpregunta
+      `);
 
-    if (existeOtraPregunta) {
-      const otraPregunta = preguntaConEseOrdenResult.rows[0];
+    // Caso 1: mismo módulo
+    if (moduloAnterior === idmodulo) {
+      if (ordenNuevo < ordenAnterior) {
+        const shiftDownRequest = new sql.Request(transaction);
 
-      /*
-        Número temporal para evitar choque si tienes UNIQUE(idmodulo, orden).
-        Primero movemos la pregunta actual a un lugar temporal.
-      */
-      const ordenTemporal = -999999;
+        await shiftDownRequest
+          .input("idmodulo", sql.Int, idmodulo)
+          .input("ordenNuevo", sql.Int, ordenNuevo)
+          .input("ordenAnterior", sql.Int, ordenAnterior)
+          .input("idpregunta", sql.Int, id)
+          .query(`
+            UPDATE dbo.preguntas
+            SET orden = orden + 1
+            WHERE idmodulo = @idmodulo
+              AND orden >= @ordenNuevo
+              AND orden < @ordenAnterior
+              AND idpregunta <> @idpregunta
+          `);
+      } else if (ordenNuevo > ordenAnterior) {
+        const shiftUpRequest = new sql.Request(transaction);
 
-      await client.query(
-        `
-        UPDATE preguntas
-        SET orden = $1
-        WHERE idpregunta = $2
-        `,
-        [ordenTemporal, id]
-      );
+        await shiftUpRequest
+          .input("idmodulo", sql.Int, idmodulo)
+          .input("ordenAnterior", sql.Int, ordenAnterior)
+          .input("ordenNuevo", sql.Int, ordenNuevo)
+          .input("idpregunta", sql.Int, id)
+          .query(`
+            UPDATE dbo.preguntas
+            SET orden = orden - 1
+            WHERE idmodulo = @idmodulo
+              AND orden > @ordenAnterior
+              AND orden <= @ordenNuevo
+              AND idpregunta <> @idpregunta
+          `);
+      }
 
-      /*
-        Intercambio:
-        - La otra pregunta toma el orden anterior.
-        - La pregunta editada toma el orden nuevo.
-      */
-      await client.query(
-        `
-        UPDATE preguntas
-        SET orden = $1
-        WHERE idpregunta = $2
-        `,
-        [ordenAnterior, otraPregunta.idpregunta]
-      );
+      const updateRequest = new sql.Request(transaction);
 
-      const result = await client.query(
-        `
-        UPDATE preguntas
-        SET 
-          texto = $1,
-          idmodulo = $2,
-          orden = $3
-        WHERE idpregunta = $4
-        RETURNING idpregunta, texto, idmodulo, orden
-        `,
-        [texto, idmodulo, ordenNuevo, id]
-      );
+      const result = await updateRequest
+        .input("idpregunta", sql.Int, id)
+        .input("texto", sql.NVarChar(255), texto)
+        .input("idmodulo", sql.Int, idmodulo)
+        .input("orden", sql.Int, ordenNuevo)
+        .query(`
+          UPDATE dbo.preguntas
+          SET
+            texto = @texto,
+            idmodulo = @idmodulo,
+            orden = @orden
+          OUTPUT
+            INSERTED.idpregunta,
+            INSERTED.texto,
+            INSERTED.idmodulo,
+            INSERTED.orden
+          WHERE idpregunta = @idpregunta
+        `);
 
-      await client.query("COMMIT");
+      await transaction.commit();
 
       return res.json({
         ok: true,
-        message: "Pregunta actualizada correctamente con intercambio de número.",
-        pregunta: result.rows[0]
+        message: "Pregunta actualizada correctamente.",
+        pregunta: result.recordset[0]
       });
     }
 
-    // Si no existe otra pregunta con ese orden, solo actualiza normal
-    const result = await client.query(
-      `
-      UPDATE preguntas
-      SET 
-        texto = $1,
-        idmodulo = $2,
-        orden = $3
-      WHERE idpregunta = $4
-      RETURNING idpregunta, texto, idmodulo, orden
-      `,
-      [texto, idmodulo, ordenNuevo, id]
-    );
+    // Caso 2: cambia de módulo
 
-    await client.query("COMMIT");
+    // Cerrar hueco en módulo anterior
+    const closeOldGapRequest = new sql.Request(transaction);
 
-    res.json({
+    await closeOldGapRequest
+      .input("moduloAnterior", sql.Int, moduloAnterior)
+      .input("ordenAnterior", sql.Int, ordenAnterior)
+      .query(`
+        UPDATE dbo.preguntas
+        SET orden = orden - 1
+        WHERE idmodulo = @moduloAnterior
+          AND orden > @ordenAnterior
+      `);
+
+    // Abrir espacio en módulo nuevo
+    const openNewGapRequest = new sql.Request(transaction);
+
+    await openNewGapRequest
+      .input("idmodulo", sql.Int, idmodulo)
+      .input("ordenNuevo", sql.Int, ordenNuevo)
+      .query(`
+        UPDATE dbo.preguntas
+        SET orden = orden + 1
+        WHERE idmodulo = @idmodulo
+          AND orden >= @ordenNuevo
+      `);
+
+    // Mover pregunta
+    const updateMoveRequest = new sql.Request(transaction);
+
+    const result = await updateMoveRequest
+      .input("idpregunta", sql.Int, id)
+      .input("texto", sql.NVarChar(255), texto)
+      .input("idmodulo", sql.Int, idmodulo)
+      .input("orden", sql.Int, ordenNuevo)
+      .query(`
+        UPDATE dbo.preguntas
+        SET
+          texto = @texto,
+          idmodulo = @idmodulo,
+          orden = @orden
+        OUTPUT
+          INSERTED.idpregunta,
+          INSERTED.texto,
+          INSERTED.idmodulo,
+          INSERTED.orden
+        WHERE idpregunta = @idpregunta
+      `);
+
+    await transaction.commit();
+
+    return res.json({
       ok: true,
       message: "Pregunta actualizada correctamente.",
-      pregunta: result.rows[0]
+      pregunta: result.recordset[0]
     });
   } catch (error) {
-    await client.query("ROLLBACK");
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      console.error("❌ Error haciendo rollback:", rollbackError);
+    }
 
     console.error("❌ Error actualizando pregunta:", error);
 
     res.status(500).json({
       ok: false,
       error: "Error actualizando pregunta",
-      detalle: error.message
+      detalle: error.message,
+      codigo: error.code || null,
+      number: error.number || null,
+      lineNumber: error.lineNumber || null
     });
-  } finally {
-    client.release();
   }
 });
 
 // ======================================================
-// DELETE PREGUNTA
 // DELETE /api/preguntas/:id
+// Eliminar pregunta y reordenar módulo
 // ======================================================
 router.delete("/preguntas/:id", async (req, res) => {
-  const client = await pool.connect();
+  const id = toInt(req.params.id);
+
+  if (!isValidPositiveInt(id)) {
+    return res.status(400).json({
+      ok: false,
+      error: "El ID de la pregunta no es válido."
+    });
+  }
+
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
 
   try {
-    const id = Number(req.params.id);
+    await transaction.begin();
 
-    if (!Number.isFinite(id) || id <= 0) {
-      return res.status(400).json({
-        ok: false,
-        error: "El ID de la pregunta no es válido."
-      });
-    }
+    // Validar pregunta
+    const preguntaRequest = new sql.Request(transaction);
 
-    await client.query("BEGIN");
+    const preguntaExiste = await preguntaRequest
+      .input("idpregunta", sql.Int, id)
+      .query(`
+        SELECT TOP 1
+          idpregunta,
+          idmodulo,
+          orden
+        FROM dbo.preguntas
+        WHERE idpregunta = @idpregunta
+      `);
 
-    // Validar que exista la pregunta
-    const preguntaExiste = await client.query(
-      `
-      SELECT idpregunta, idmodulo, orden
-      FROM preguntas
-      WHERE idpregunta = $1
-      LIMIT 1
-      `,
-      [id]
-    );
-
-    if (preguntaExiste.rows.length === 0) {
-      await client.query("ROLLBACK");
+    if (preguntaExiste.recordset.length === 0) {
+      await transaction.rollback();
 
       return res.status(404).json({
         ok: false,
@@ -459,41 +596,50 @@ router.delete("/preguntas/:id", async (req, res) => {
       });
     }
 
-    const pregunta = preguntaExiste.rows[0];
+    const pregunta = preguntaExiste.recordset[0];
+
     const idmodulo = Number(pregunta.idmodulo);
     const ordenEliminado = Number(pregunta.orden);
 
-    await client.query(
-      `
-      DELETE FROM preguntas
-      WHERE idpregunta = $1
-      `,
-      [id]
-    );
+    // Eliminar pregunta
+    const deleteRequest = new sql.Request(transaction);
 
-    // Reacomodar los números después de eliminar
-    await client.query(
-      `
-      UPDATE preguntas
-      SET orden = orden - 1
-      WHERE idmodulo = $1
-        AND orden > $2
-      `,
-      [idmodulo, ordenEliminado]
-    );
+    await deleteRequest
+      .input("idpregunta", sql.Int, id)
+      .query(`
+        DELETE FROM dbo.preguntas
+        WHERE idpregunta = @idpregunta
+      `);
 
-    await client.query("COMMIT");
+    // Reordenar
+    const reorderRequest = new sql.Request(transaction);
+
+    await reorderRequest
+      .input("idmodulo", sql.Int, idmodulo)
+      .input("ordenEliminado", sql.Int, ordenEliminado)
+      .query(`
+        UPDATE dbo.preguntas
+        SET orden = orden - 1
+        WHERE idmodulo = @idmodulo
+          AND orden > @ordenEliminado
+      `);
+
+    await transaction.commit();
 
     res.json({
       ok: true,
       message: "Pregunta eliminada correctamente."
     });
   } catch (error) {
-    await client.query("ROLLBACK");
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      console.error("❌ Error haciendo rollback:", rollbackError);
+    }
 
     console.error("❌ Error eliminando pregunta:", error);
 
-    if (error.code === "23503") {
+    if (error.number === 547) {
       return res.status(409).json({
         ok: false,
         error: "No se puede eliminar la pregunta porque ya está relacionada con auditorías o respuestas."
@@ -503,10 +649,11 @@ router.delete("/preguntas/:id", async (req, res) => {
     res.status(500).json({
       ok: false,
       error: "Error eliminando pregunta",
-      detalle: error.message
+      detalle: error.message,
+      codigo: error.code || null,
+      number: error.number || null,
+      lineNumber: error.lineNumber || null
     });
-  } finally {
-    client.release();
   }
 });
 
