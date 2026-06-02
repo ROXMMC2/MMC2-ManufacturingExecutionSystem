@@ -1,9 +1,4 @@
-// ======================================================
-// CONFIGURACIÓN API
-// ======================================================
-// En Azure debe quedarse vacío para que use el mismo dominio:
-// https://app-modeline.azurewebsites.net/api/login
-//
+// En Azure debe quedarse vacío para que use el mismo dominio.
 // NO usar http://localhost:3000 en Azure.
 const API_BASE = "";
 
@@ -46,7 +41,11 @@ document.addEventListener("DOMContentLoaded", function () {
           })
         });
 
-        const text = await response.text();
+
+
+// ======================================================
+// CONFIGURACIÓN API
+// =================================================        const text = await response.text();// ======================================================
         let data = {};
 
         try {
@@ -281,6 +280,7 @@ function getFechaHoraLocal() {
 
 // ======================================================
 // APP CONFIG
+// Se deja por compatibilidad, pero Auditoría ya no depende de esto.
 // ======================================================
 function getAppConfigSeguro() {
   try {
@@ -323,26 +323,51 @@ function getCurrentUserSeguro() {
 
 // ======================================================
 // CARGAR BUSINESS UNITS / PRODUCTION LINES / REVIEWERS
-// DESDE appConfig
+// DESDE AZURE SQL
 // ======================================================
-function cargarCatalogosAuditoria() {
+async function cargarCatalogosAuditoria() {
   const buSelect = document.getElementById("businessUnit");
   const lineSelect = document.getElementById("productionLine");
   const reviewerSelect = document.getElementById("reviewerSelect");
 
-  if (!buSelect || !lineSelect || !reviewerSelect) return;
-
-  const config = getAppConfigSeguro();
-
-  const businessUnits = Array.isArray(config.businessUnits)
-    ? config.businessUnits
-    : [];
-
-  const productionLines = Array.isArray(config.productionLines)
-    ? config.productionLines
-    : [];
+  if (!buSelect || !lineSelect || !reviewerSelect) {
+    console.warn("No se encontraron los selects de auditoría.");
+    return;
+  }
 
   const currentUser = getCurrentUserSeguro();
+
+  let businessUnits = [];
+  let productionLines = [];
+
+  try {
+    const response = await fetch(`${API_BASE}/api/catalogos?t=${Date.now()}`, {
+      method: "GET",
+      cache: "no-store"
+    });
+
+    const text = await response.text();
+    let data = {};
+
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      throw new Error(text || "La respuesta de /api/catalogos no es JSON válido.");
+    }
+
+    console.log("📥 Catálogos desde Azure SQL:", data);
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || data.message || "No se pudieron cargar los catálogos.");
+    }
+
+    businessUnits = Array.isArray(data.businessUnits) ? data.businessUnits : [];
+    productionLines = Array.isArray(data.productionLines) ? data.productionLines : [];
+  } catch (error) {
+    console.error("❌ Error cargando catálogos desde Azure SQL:", error);
+    alert("No se pudieron cargar Business Units y Production Lines desde el servidor.");
+    return;
+  }
 
   // ======================================================
   // BUSINESS UNITS
@@ -350,14 +375,10 @@ function cargarCatalogosAuditoria() {
   buSelect.innerHTML = `
     <option value="">Select a Business Unit</option>
     ${businessUnits
-      .sort((a, b) =>
-        String(a.name || a.nombre || "").localeCompare(
-          String(b.name || b.nombre || "")
-        )
-      )
+      .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")))
       .map(bu => `
-        <option value="${bu.id || bu.IdBusinessUnit || bu.idbusinessunit || ""}">
-          ${bu.name || bu.nombre || "Sin nombre"}
+        <option value="${bu.idbusinessunit}">
+          ${bu.nombre}
         </option>
       `)
       .join("")}
@@ -394,7 +415,7 @@ function cargarCatalogosAuditoria() {
   }
 
   // ======================================================
-  // PRODUCTION LINES SEGÚN BU
+  // PRODUCTION LINES SEGÚN BUSINESS UNIT
   // ======================================================
   function cargarProductionLinesPorBU(businessUnitId) {
     if (!businessUnitId) {
@@ -404,22 +425,15 @@ function cargarCatalogosAuditoria() {
     }
 
     const lines = productionLines
-      .filter(pl =>
-        String(pl.businessUnitId || pl.IdBusinessUnit || pl.idbusinessunit) ===
-        String(businessUnitId)
-      )
-      .sort((a, b) =>
-        String(a.name || a.nombre || "").localeCompare(
-          String(b.name || b.nombre || "")
-        )
-      );
+      .filter(pl => String(pl.idbusinessunit) === String(businessUnitId))
+      .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")));
 
     lineSelect.innerHTML = `
       <option value="">Select a Production Line</option>
       ${lines
         .map(pl => `
-          <option value="${pl.id || pl.IdProductionLine || pl.idproductionline || ""}">
-            ${pl.name || pl.nombre || "Sin nombre"}
+          <option value="${pl.idproductionline}">
+            ${pl.nombre}
           </option>
         `)
         .join("")}
@@ -439,8 +453,8 @@ function cargarCatalogosAuditoria() {
 // ======================================================
 // DATOS INICIALES DEL REVIEW
 // ======================================================
-document.addEventListener("DOMContentLoaded", function () {
-  cargarCatalogosAuditoria();
+document.addEventListener("DOMContentLoaded", async function () {
+  await cargarCatalogosAuditoria();
 
   const inputFecha = document.getElementById("assessmentDate");
 
@@ -1183,12 +1197,10 @@ async function inicializarCuestionarioDinamico() {
 
     const preguntasNormalizadas = preguntasBD.map(normalizarPreguntaBD);
 
-    // 1) Intentar filtrar por idmodulo
     let preguntasDelModulo = preguntasNormalizadas.filter(p => {
       return String(p.idmodulo) === String(moduleId);
     });
 
-    // 2) Si no encontró por idmodulo, intentar por nombre de módulo
     if (!preguntasDelModulo.length && moduleName) {
       preguntasDelModulo = preguntasNormalizadas.filter(p => {
         const nombreModulo = String(p.modulo || "").toLowerCase().trim();
@@ -1196,7 +1208,6 @@ async function inicializarCuestionarioDinamico() {
       });
     }
 
-    // 3) Si todavía no encontró, usar rango global como respaldo
     if (!preguntasDelModulo.length) {
       preguntasDelModulo = preguntasNormalizadas.filter(p => {
         const orden = Number(p.orden);
@@ -1204,7 +1215,6 @@ async function inicializarCuestionarioDinamico() {
       });
     }
 
-    // 4) Ordenar por orden local o global
     preguntasDelModulo = preguntasDelModulo
       .filter(p => p.texto)
       .sort((a, b) => {
@@ -1213,7 +1223,6 @@ async function inicializarCuestionarioDinamico() {
         return ordenA - ordenB;
       });
 
-    // 5) Convertir a número global correcto para el formulario
     const preguntasNormalizadasFinal = preguntasDelModulo.map((p, index) => {
       return {
         ...p,
