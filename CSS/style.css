@@ -2478,3 +2478,293 @@ img {
     width: 100%;
   }
 }
+
+
+/* =====================================================
+   REPORTES - DISEÑO LIMPIO Y MODERNO
+   Pegar al final de style.css
+===================================================== */
+
+body {
+  background: #eef2f7;
+}
+
+/* Contenedor principal de reportes */
+.review-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.10);
+  border: 1px solid #e2e8f0;
+}
+
+/* Título */
+.review-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.review-meta {
+  color: #475569;
+  font-size: 0.95rem;
+  margin-bottom: 18px;
+}
+
+/* Resumen superior */
+.review-info .row {
+  margin-top: 14px;
+}
+
+.review-info .border {
+  border: 1px solid #dbe4ef !important;
+  border-radius: 16px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.review-info strong {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.review-info span {
+  color: #1e293b;
+  font-weight: 800;
+}
+
+/* Sección principal */
+.business-unit-section {
+  margin-top: 28px;
+}
+
+/* Accordions */
+.business-unit-section .accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.business-unit-section .accordion-item {
+  border: 1px solid #dbe4ef !important;
+  border-radius: 18px !important;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+/* Headers */
+.business-unit-section .accordion-header {
+  margin: 0;
+}
+
+.business-unit-section .accordion-header > .d-flex {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  width: 100%;
+  background: #ffffff;
+  padding: 12px;
+  border: none !important;
+}
+
+/* Botón accordion */
+.business-unit-section .accordion-button {
+  width: 100%;
+  min-height: 62px;
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%) !important;
+  color: #0f172a !important;
+  font-weight: 900;
+  font-size: 1.05rem;
+  padding: 16px 18px;
+}
+
+.business-unit-section .accordion-button:not(.collapsed) {
+  background: linear-gradient(90deg, #eff6ff 0%, #ffffff 100%) !important;
+  color: #0f172a !important;
+}
+
+.business-unit-section .accordion-button:focus {
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10) !important;
+}
+
+/* Texto dentro del botón */
+.business-unit-section .accordion-button strong {
+  font-size: 1.15rem;
+  color: #0f172a;
+  white-space: normal;
+}
+
+/* Badges */
+.business-unit-section .badge {
+  border-radius: 999px !important;
+  font-size: 0.85rem;
+  font-weight: 900;
+  padding: 8px 14px !important;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.business-unit-section .bg-success {
+  background: #168a50 !important;
+}
+
+.business-unit-section .bg-primary {
+  background: #2563eb !important;
+}
+
+.business-unit-section .bg-warning {
+  background: #facc15 !important;
+  color: #111827 !important;
+}
+
+.business-unit-section .bg-danger {
+  background: #dc2626 !important;
+}
+
+/* Botón Plan de Acción */
+.business-unit-section .btn-warning {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+  color: #111827 !important;
+  border: none !important;
+  border-radius: 999px !important;
+  font-weight: 900 !important;
+  padding: 10px 18px !important;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.25);
+  white-space: nowrap;
+  align-self: center;
+}
+
+.business-unit-section .btn-warning:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(245, 158, 11, 0.32);
+}
+
+/* Body de cada accordion */
+.business-unit-section .accordion-body {
+  background: #ffffff;
+  padding: 22px;
+}
+
+/* Accordions internos de review */
+.business-unit-section .accordion-body .accordion-item {
+  box-shadow: none;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+}
+
+/* Header de cada review */
+.business-unit-section .accordion-body .accordion-header > .d-flex {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px !important;
+  align-items: center !important;
+  padding: 12px;
+}
+
+.business-unit-section .accordion-body .accordion-button {
+  min-height: 54px;
+  background: #f8fafc !important;
+  font-size: 1rem;
+  padding: 14px 18px;
+}
+
+.business-unit-section .accordion-body .accordion-button strong {
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Badge final del review */
+.business-unit-section .accordion-body .accordion-header .badge {
+  min-width: 150px;
+  height: 42px;
+}
+
+/* Tabla */
+.business-unit-section .table-responsive {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.business-unit-section .table {
+  margin-bottom: 0 !important;
+  font-size: 0.87rem;
+}
+
+.business-unit-section .table thead th {
+  background: #f1f5f9 !important;
+  color: #0f172a;
+  font-weight: 900;
+  border-bottom: 1px solid #dbe4ef !important;
+  padding: 14px 12px;
+  white-space: nowrap;
+}
+
+.business-unit-section .table tbody td {
+  color: #1e293b;
+  padding: 12px;
+  vertical-align: middle;
+  border-color: #e5e7eb !important;
+}
+
+.business-unit-section .table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.business-unit-section .table td:nth-child(3) {
+  line-height: 1.45;
+}
+
+.business-unit-section .table .badge {
+  min-width: 64px;
+  text-align: center;
+  padding: 6px 10px !important;
+}
+
+/* Evitar botones feos globales */
+.business-unit-section button {
+  border-width: 0;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .review-card {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .business-unit-section .accordion-header > .d-flex {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .business-unit-section .btn-warning {
+    width: 100%;
+  }
+
+  .business-unit-section .accordion-button {
+    width: 100%;
+  }
+
+  .business-unit-section .accordion-body .accordion-header > .d-flex {
+    grid-template-columns: 1fr;
+  }
+
+  .business-unit-section .accordion-body .accordion-header .badge {
+    width: 100%;
+  }
+
+  .business-unit-section .table {
+    font-size: 0.8rem;
+  }
+}
