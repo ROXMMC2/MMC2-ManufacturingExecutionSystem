@@ -7,7 +7,6 @@
   const APP_CONFIG_KEY = "appConfig";
 
   // En Azure debe quedarse vacío para usar el mismo dominio.
-  // NO usar http://localhost:3000 en Azure.
   const API_BASE = "";
 
   const MODULOS_FALLBACK = [
@@ -116,6 +115,44 @@
     return el ? el.value.trim() : "";
   }
 
+  function normalizeRoleFront(value) {
+    const role = String(value || "").trim().toLowerCase();
+
+    if (
+      role === "admin" ||
+      role === "administrador" ||
+      role === "administrator"
+    ) {
+      return "administrador";
+    }
+
+    if (
+      role === "reviewer" ||
+      role === "revisor"
+    ) {
+      return "reviewer";
+    }
+
+    if (
+      role === "user" ||
+      role === "usuario"
+    ) {
+      return "usuario";
+    }
+
+    return role || "usuario";
+  }
+
+  function getErrorMessage(data, fallback) {
+    return (
+      data?.detalle ||
+      data?.detail ||
+      data?.error ||
+      data?.message ||
+      fallback
+    );
+  }
+
   // ======================================================
   // MAPPERS DESDE BD
   // ======================================================
@@ -132,8 +169,8 @@
       username: String(u.username ?? u.Usuario ?? u.usuario ?? "").trim(),
       password: String(u.password ?? u.Contrasena ?? u.contrasena ?? "").trim(),
       email: String(u.email ?? u.Correo ?? u.correo ?? "").trim(),
-      role: String(u.role ?? u.Rol ?? u.rol ?? "").trim().toLowerCase(),
-      active: true
+      role: normalizeRoleFront(u.role ?? u.Rol ?? u.rol ?? ""),
+      active: Boolean(u.active ?? u.Activo ?? u.activo ?? true)
     };
   }
 
@@ -203,9 +240,11 @@
         cache: "no-store"
       });
 
-      if (!res.ok) throw new Error("No se pudieron obtener usuarios desde la base de datos.");
+      const data = await res.json().catch(() => ({}));
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(getErrorMessage(data, "No se pudieron obtener usuarios desde la base de datos."));
+      }
 
       if (!Array.isArray(data)) {
         throw new Error("La respuesta de usuarios no es un arreglo.");
@@ -229,11 +268,11 @@
         cache: "no-store"
       });
 
-      if (!res.ok) {
-        throw new Error("No se pudieron obtener módulos desde la base de datos.");
-      }
+      const data = await res.json().catch(() => ({}));
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(getErrorMessage(data, "No se pudieron obtener módulos desde la base de datos."));
+      }
 
       if (!Array.isArray(data)) {
         throw new Error("La respuesta de módulos no es un arreglo.");
@@ -265,11 +304,11 @@
         cache: "no-store"
       });
 
-      if (!res.ok) {
-        throw new Error("No se pudieron obtener preguntas desde la base de datos.");
-      }
+      const data = await res.json().catch(() => ({}));
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(getErrorMessage(data, "No se pudieron obtener preguntas desde la base de datos."));
+      }
 
       if (!Array.isArray(data)) {
         throw new Error("La respuesta de preguntas no es un arreglo.");
@@ -295,14 +334,14 @@
         cache: "no-store"
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        throw new Error("No se pudieron obtener catálogos desde la base de datos.");
+        throw new Error(getErrorMessage(data, "No se pudieron obtener catálogos desde la base de datos."));
       }
 
-      const data = await res.json();
-
       if (!data.ok) {
-        throw new Error(data.error || data.message || "La API de catálogos respondió ok=false.");
+        throw new Error(getErrorMessage(data, "La API de catálogos respondió ok=false."));
       }
 
       const businessUnits = Array.isArray(data.businessUnits) ? data.businessUnits : [];
@@ -498,12 +537,8 @@
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        throw new Error(
-          data.detalle ||
-          data.error ||
-          "No se pudo guardar la pregunta."
-        );
+      if (!res.ok || data.ok === false) {
+        throw new Error(getErrorMessage(data, "No se pudo guardar la pregunta."));
       }
 
       clearQuestionForm();
@@ -549,8 +584,8 @@
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        throw new Error(data.error || "No se pudo eliminar la pregunta.");
+      if (!res.ok || data.ok === false) {
+        throw new Error(getErrorMessage(data, "No se pudo eliminar la pregunta."));
       }
 
       clearQuestionForm();
@@ -665,16 +700,28 @@
       return;
     }
 
+    if (!id && !password) {
+      alert("Escribe la contraseña.");
+      return;
+    }
+
     const payload = {
       nombre: name,
       usuario: username,
-      contrasena: password,
-      correo: email,
-      rol: String(role || "").trim().toLowerCase()
+      correo: email || null,
+      rol: normalizeRoleFront(role)
     };
+
+    // Crear usuario: la contraseña es obligatoria.
+    // Editar usuario: solo se manda si escribiste una nueva.
+    if (password) {
+      payload.contrasena = password;
+    }
 
     try {
       let res;
+
+      console.log("Payload usuario enviado al backend:", payload);
 
       if (id) {
         res = await fetch(`${API_BASE}/api/usuarios/${encodeURIComponent(id)}`, {
@@ -683,11 +730,6 @@
           body: JSON.stringify(payload)
         });
       } else {
-        if (!password) {
-          alert("Escribe la contraseña.");
-          return;
-        }
-
         res = await fetch(`${API_BASE}/api/usuarios`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -697,8 +739,19 @@
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        throw new Error(data.error || "No se pudo guardar el usuario.");
+      console.log("Respuesta backend usuarios:", {
+        status: res.status,
+        ok: res.ok,
+        data
+      });
+
+      if (!res.ok || data.ok === false) {
+        throw new Error(
+          getErrorMessage(
+            data,
+            `Error HTTP ${res.status} guardando usuario.`
+          )
+        );
       }
 
       clearUserForm();
@@ -720,9 +773,14 @@
     safeSetValue("userId", item.id);
     safeSetValue("userName", item.name);
     safeSetValue("userUsername", item.username);
-    safeSetValue("userPassword", item.password || "");
+
+    // Seguridad/practicidad:
+    // No llenamos contraseña al editar para evitar reenviar contraseñas antiguas.
+    // Si quieres cambiarla, escribes una nueva.
+    safeSetValue("userPassword", "");
+
     safeSetValue("userEmail", item.email);
-    safeSetValue("userRole", item.role);
+    safeSetValue("userRole", normalizeRoleFront(item.role));
 
     openTab("users");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -739,8 +797,8 @@
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        throw new Error(data.error || "No se pudo eliminar el usuario.");
+      if (!res.ok || data.ok === false) {
+        throw new Error(getErrorMessage(data, "No se pudo eliminar el usuario."));
       }
 
       await cargarUsuariosDesdeBD();
@@ -777,7 +835,7 @@
         <td>${escapeHTML(item.name)}</td>
         <td>${escapeHTML(item.username || "")}</td>
         <td>${escapeHTML(item.email || "")}</td>
-        <td>${escapeHTML(item.role || "")}</td>
+        <td>${escapeHTML(normalizeRoleFront(item.role || ""))}</td>
         <td>
           <div class="settings-actions">
             <button type="button" class="btn-settings-warning" data-edit-user="${escapeHTML(item.id)}">
@@ -835,8 +893,8 @@
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        throw new Error(data.error || "No se pudo guardar la Business Unit.");
+      if (!res.ok || data.ok === false) {
+        throw new Error(getErrorMessage(data, "No se pudo guardar la Business Unit."));
       }
 
       clearBusinessUnitForm();
@@ -874,8 +932,8 @@
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        throw new Error(data.error || "No se pudo eliminar la Business Unit.");
+      if (!res.ok || data.ok === false) {
+        throw new Error(getErrorMessage(data, "No se pudo eliminar la Business Unit."));
       }
 
       clearBusinessUnitForm();
@@ -1015,13 +1073,8 @@
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        throw new Error(
-          data.detalle ||
-          data.detail ||
-          data.error ||
-          "No se pudo guardar la Production Line."
-        );
+      if (!res.ok || data.ok === false) {
+        throw new Error(getErrorMessage(data, "No se pudo guardar la Production Line."));
       }
 
       clearProductionLineForm();
@@ -1060,8 +1113,8 @@
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        throw new Error(data.error || "No se pudo eliminar la Production Line.");
+      if (!res.ok || data.ok === false) {
+        throw new Error(getErrorMessage(data, "No se pudo eliminar la Production Line."));
       }
 
       clearProductionLineForm();
