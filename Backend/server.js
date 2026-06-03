@@ -1,5 +1,6 @@
-const express = require("express");
-const cors = require("cors");
+app.listen(PORT, () => {
+  console.log(`✅ Servidor corriendo en puerto ${PORT}`);
+});
 const path = require("path");
 
 const app = express();
@@ -20,7 +21,8 @@ app.get("/health", (req, res) => {
     ok: true,
     message: "Servidor corriendo correctamente"
   });
-});
+const express = require("express");
+const cors = require});const cors = require("cors");
 
 // ===============================
 // DB TEST - AZURE SQL DATABASE
@@ -81,10 +83,32 @@ const catalogosRoutes = require("./routes/catalogos");
 // ===============================
 // MOUNT DE RUTAS API
 // ===============================
+// Usuarios:
+// GET    /api/usuarios
+// POST   /api/usuarios
+// PUT    /api/usuarios/:id
+// DELETE /api/usuarios/:id
+// POST   /api/login
 app.use("/api", usuariosRoutes);
+
+// Preguntas:
+// GET    /api/preguntas
+// POST   /api/preguntas
+// PUT    /api/preguntas/:id
+// DELETE /api/preguntas/:id
 app.use("/api", preguntasRoutes);
+
+// Catálogos:
+// GET /api/catalogos
+// business units / production lines según tus rutas internas
 app.use("/api", catalogosRoutes);
-app.use("/reviews", reviewsRoute);
+
+// Reviews:
+// POST /api/reviews/guardar
+// GET  /api/reviews/todos
+// GET  /api/reviews/lista
+// GET  /api/reviews/detalle/:idreview
+app.use("/api/reviews", reviewsRoute);
 
 // ===============================
 // RUTA PRINCIPAL DEL FRONTEND
@@ -120,7 +144,3 @@ app.use((req, res) => {
 // START SERVER
 // ===============================
 const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-});

@@ -1084,18 +1084,42 @@ document.addEventListener("DOMContentLoaded", function () {
   function cargarReviews() {
     setEstadoCarga("Cargando datos...");
 
-    fetch("http://localhost:3000/reviews/todos")
-      .then(res => {
+    fetch("/api/reviews/todos?t=" + Date.now(), {
+      method: "GET",
+      cache: "no-store"
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+
+        console.log("Respuesta /api/reviews/todos:", {
+          status: res.status,
+          ok: res.ok,
+          data
+        });
+
         if (!res.ok) {
-          throw new Error("La respuesta del servidor no fue correcta.");
+          throw new Error(
+            data.detalle ||
+            data.error ||
+            data.message ||
+            "La respuesta del servidor no fue correcta."
+          );
         }
 
-        return res.json();
+        return data;
       })
       .then(data => {
-        console.log("📦 Datos recibidos:", data);
+        console.log("Datos recibidos:", data);
 
-        if (!data || data.length === 0) {
+        const rows = Array.isArray(data)
+          ? data
+          : Array.isArray(data.reviews)
+            ? data.reviews
+            : Array.isArray(data.data)
+              ? data.data
+              : [];
+
+        if (!rows || rows.length === 0) {
           renderInfo([]);
           renderDashboard([]);
           renderBusinessUnits([]);
@@ -1104,17 +1128,17 @@ document.addEventListener("DOMContentLoaded", function () {
           return;
         }
 
-        renderInfo(data);
+        renderInfo(rows);
 
         if (esPowerBI) {
-          renderDashboard(data);
+          renderDashboard(rows);
         } else {
           renderDashboard([]);
         }
 
         if (esReportes) {
-          renderBusinessUnits(data);
-          renderActionPlanSection(data);
+          renderBusinessUnits(rows);
+          renderActionPlanSection(rows);
           aplicarSeccionDesdeHash();
         } else {
           renderBusinessUnits([]);
@@ -1124,7 +1148,7 @@ document.addEventListener("DOMContentLoaded", function () {
         limpiarEstadoCarga();
       })
       .catch(err => {
-        console.error("❌ Error:", err);
+        console.error("Error cargando reviews:", err);
 
         renderInfo([]);
         renderDashboard([]);
@@ -1132,7 +1156,7 @@ document.addEventListener("DOMContentLoaded", function () {
         renderActionPlanSection([]);
 
         setEstadoCarga("No se pudieron cargar los datos.");
-        alert("No se pudieron cargar los datos.");
+        alert(err.message || "No se pudieron cargar los datos.");
       });
   }
 
