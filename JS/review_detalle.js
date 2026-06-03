@@ -197,16 +197,16 @@ dashboardEl.id = "dashboardContainer";
  // ======================================================
  // FUNCIONES AUXILIARES
  // ======================================================
- function escapeHTML(valor) {
-   if (valor === null || valor === undefined) return "";
+function escapeHTML(valor) {
+  if (valor === null || valor === undefined) return "";
 
-   return String(valor)
-     .replace(/&/g, "&amp;")
-     .replace(/</g, "&lt;")
-     .replace(/>/g, "&gt;")
-     .replace(/"/g, "&quot;")
-     .replace(/'/g, "&#039;");
- }
+  return String(valor)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
  function parsearFechaHora(fecha) {
    if (!fecha) return null;
