@@ -22,13 +22,20 @@ function normalizeRole(value) {
   }
 
   if (
+    role === "reviewer" ||
+    role === "revisor"
+  ) {
+    return "reviewer";
+  }
+
+  if (
     role === "user" ||
     role === "usuario"
   ) {
     return "usuario";
   }
 
-  return "usuario";
+  return "reviewer";
 }
 
 function toInt(value) {

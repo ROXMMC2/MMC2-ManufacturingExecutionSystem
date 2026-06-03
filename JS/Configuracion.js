@@ -140,7 +140,7 @@
       return "usuario";
     }
 
-    return role || "usuario";
+    return "reviewer";
   }
 
   function getErrorMessage(data, fallback) {
@@ -677,93 +677,97 @@
   // ======================================================
   // USERS / GENTE
   // ======================================================
-  async function saveUser() {
-    const id = safeGetValue("userId");
-    const name = safeGetValue("userName");
-    const username = safeGetValue("userUsername");
-    const password = safeGetValue("userPassword");
-    const email = safeGetValue("userEmail");
-    const role = safeGetValue("userRole");
+async function saveUser() {
+  const id = safeGetValue("userId");
+  const name = safeGetValue("userName");
+  const username = safeGetValue("userUsername");
+  const password = safeGetValue("userPassword");
+  const email = safeGetValue("userEmail");
+  const role = safeGetValue("userRole");
 
-    if (!name) {
-      alert("Escribe el nombre del usuario.");
-      return;
-    }
-
-    if (!username) {
-      alert("Escribe el usuario para login.");
-      return;
-    }
-
-    if (!role) {
-      alert("Selecciona un rol.");
-      return;
-    }
-
-    if (!id && !password) {
-      alert("Escribe la contraseña.");
-      return;
-    }
-
-    const payload = {
-      nombre: name,
-      usuario: username,
-      correo: email || null,
-      rol: normalizeRoleFront(role)
-    };
-
-    // Crear usuario: la contraseña es obligatoria.
-    // Editar usuario: solo se manda si escribiste una nueva.
-    if (password) {
-      payload.contrasena = password;
-    }
-
-    try {
-      let res;
-
-      console.log("Payload usuario enviado al backend:", payload);
-
-      if (id) {
-        res = await fetch(`${API_BASE}/api/usuarios/${encodeURIComponent(id)}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-      } else {
-        res = await fetch(`${API_BASE}/api/usuarios`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-      }
-
-      const data = await res.json().catch(() => ({}));
-
-      console.log("Respuesta backend usuarios:", {
-        status: res.status,
-        ok: res.ok,
-        data
-      });
-
-      if (!res.ok || data.ok === false) {
-        throw new Error(
-          getErrorMessage(
-            data,
-            `Error HTTP ${res.status} guardando usuario.`
-          )
-        );
-      }
-
-      clearUserForm();
-      await cargarUsuariosDesdeBD();
-
-      alert(id ? "Usuario actualizado correctamente." : "Usuario creado correctamente.");
-    } catch (error) {
-      console.error("Error guardando usuario:", error);
-      alert(error.message || "No se pudo guardar el usuario.");
-    }
+  if (!name) {
+    alert("Escribe el nombre del usuario.");
+    return;
   }
 
+  if (!username) {
+    alert("Escribe el usuario para login.");
+    return;
+  }
+
+  if (!role) {
+    alert("Selecciona un rol.");
+    return;
+  }
+
+  if (!id && !password) {
+    alert("Escribe la contraseña.");
+    return;
+  }
+
+  const payload = {
+    nombre: name,
+    usuario: username,
+    correo: email || null,
+    rol: normalizeRoleFront(role)
+  };
+
+  if (password) {
+    payload.contrasena = password;
+  }
+
+  console.log("Rol seleccionado en HTML:", role);
+  console.log("Rol enviado al backend:", payload.rol);
+  console.log("Payload usuario:", payload);
+
+  try {
+    let res;
+
+    if (id) {
+      res = await fetch(`${API_BASE}/api/usuarios/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      res = await fetch(`${API_BASE}/api/usuarios`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    const data = await res.json().catch(() => ({}));
+
+    console.log("Respuesta backend usuarios:", {
+      status: res.status,
+      ok: res.ok,
+      data
+    });
+
+    if (!res.ok || data.ok === false) {
+      throw new Error(
+        data.detalle ||
+        data.detail ||
+        data.error ||
+        data.message ||
+        "No se pudo guardar el usuario."
+      );
+    }
+
+    clearUserForm();
+    await cargarUsuariosDesdeBD();
+
+    alert(id ? "Usuario actualizado correctamente." : "Usuario creado correctamente.");
+  } catch (error) {
+    console.error("Error guardando usuario:", error);
+    alert(error.message || "No se pudo guardar el usuario.");
+  }
+}
   function editUser(id) {
     const config = getConfig();
     const item = config.users.find(u => String(u.id) === String(id));
