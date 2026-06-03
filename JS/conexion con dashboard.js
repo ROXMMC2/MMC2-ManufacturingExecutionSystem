@@ -984,24 +984,52 @@ const barValueLabelsPlugin = {
     setEstado("Cargando dashboard...");
     ocultarSeccionesNoDeseadas();
 
-    fetch("http://localhost:3000/reviews/todos")
-      .then(res => {
+    fetch("/api/reviews/todos?t=" + Date.now(), {
+      method: "GET",
+      cache: "no-store"
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+
+        console.log("Respuesta /api/reviews/todos dashboard:", {
+          status: res.status,
+          ok: res.ok,
+          data
+        });
+
         if (!res.ok) {
-          throw new Error("La respuesta del servidor no fue correcta.");
+          throw new Error(
+            data.detalle ||
+            data.error ||
+            data.message ||
+            "La respuesta del servidor no fue correcta."
+          );
         }
 
-        return res.json();
+        return data;
       })
       .then(data => {
-        if (!data || data.length === 0) {
+        const rows = Array.isArray(data)
+          ? data
+          : Array.isArray(data.reviews)
+            ? data.reviews
+            : Array.isArray(data.data)
+              ? data.data
+              : [];
+
+        console.log("Datos recibidos para dashboard:", rows);
+
+        if (!rows || rows.length === 0) {
           setEstado("No hay datos para mostrar.");
           limpiarVistaSinDatos();
           return;
         }
 
-        registrosBase = data
+        registrosBase = rows
           .map(normalizarRegistro)
           .filter(r => r.pregunta !== null);
+
+        console.log("Registros normalizados dashboard:", registrosBase);
 
         if (!registrosBase.length) {
           setEstado("No hay datos válidos para mostrar.");
@@ -1011,13 +1039,25 @@ const barValueLabelsPlugin = {
 
         poblarFiltroBU(registrosBase);
         poblarFiltroPL(registrosBase, "", "");
+
+        mesSeleccionadoHistorico = "";
+
+        if (typeof actualizarTextoMesSeleccionado === "function") {
+          actualizarTextoMesSeleccionado();
+        }
+
         aplicarFiltrosDashboard();
 
         setEstado("");
       })
       .catch(error => {
-        console.error("❌ Error dashboard:", error);
-        setEstado("No se pudieron cargar los datos del dashboard.");
+        console.error("Error dashboard:", error);
+
+        setEstado(
+          error.message ||
+          "No se pudieron cargar los datos del dashboard."
+        );
+
         limpiarVistaSinDatos();
       });
   }
