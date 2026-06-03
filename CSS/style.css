@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --sidebar-bg-1: #020b1f;
   --sidebar-bg-2: #03112e;
   --sidebar-active-1: #4f8fff;
@@ -208,7 +208,7 @@ img {
   white-space: nowrap;
 }
 
-/* Cerrar sesión accesible, no hasta abajo */
+/* Cerrar sesiÃ³n accesible, no hasta abajo */
 .sidebar-bottom {
   margin-top: 14px;
 }
@@ -266,7 +266,7 @@ img {
   align-items: center;
 }
 
-/* Overlay móvil */
+/* Overlay mÃ³vil */
 .sidebar-overlay {
   display: none;
 }
@@ -580,7 +580,7 @@ img {
 }
 
 /* =========================
-   MÓDULOS RESPONSIVE
+   MÃ“DULOS RESPONSIVE
 ========================= */
 .modules-grid {
   width: 100%;
@@ -850,7 +850,7 @@ img {
 }
 
 /* =========================
-   SETTINGS / CONFIGURACIÓN
+   SETTINGS / CONFIGURACIÃ“N
 ========================= */
 .settings-header {
   margin-bottom: 20px;
@@ -1043,7 +1043,7 @@ img {
 }
 
 /* =========================
-   EVALUACIÓN / AUDITORÍA
+   EVALUACIÃ“N / AUDITORÃA
 ========================= */
 .evaluation-title {
   margin: 0;
@@ -1283,7 +1283,7 @@ img {
 }
 
 /* =========================
-   MENSAJE DE ÉXITO
+   MENSAJE DE Ã‰XITO
 ========================= */
 .overlay-exito {
   position: fixed;
@@ -1472,7 +1472,7 @@ img {
 }
 
 /* =========================
-   PLAN DE ACCIÓN
+   PLAN DE ACCIÃ“N
 ========================= */
 .action-plan-page {
   padding: 24px;
@@ -1645,7 +1645,7 @@ img {
   color: #dc2626;
 }
 
-/* Tamaños de columnas */
+/* TamaÃ±os de columnas */
 .col-fecha {
   width: 70px;
 }
@@ -2305,154 +2305,9 @@ img {
   white-space: normal;
   line-height: 1.35;
 }
-/* =====================================================
-   ALINEAR CALIFICACIONES EN REPORTES
-   PEGAR AL FINAL DE style.css
-===================================================== */
-
-/* Fila completa del review */
-.review-score-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 235px;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  background: #ffffff;
-}
-
-/* Botón donde aparece fecha - hora - usuario */
-.review-date-button {
-  width: 100%;
-  min-height: 54px;
-  border-radius: 0 !important;
-  background: #ffffff !important;
-  box-shadow: none !important;
-  padding-left: 20px !important;
-  padding-right: 18px !important;
-}
-
-/* Texto del review */
-.review-date-text {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Badge de calificación alineado a la derecha */
-.review-score-badge {
-  width: 235px;
-  min-height: 40px;
-
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-
-  justify-self: end;
-  align-self: center;
-
-  font-size: 1.25rem;
-  font-weight: 900;
-  border-radius: 7px;
-  padding: 9px 14px !important;
-  white-space: nowrap;
-}
-
-/* Limpieza visual de cada review */
-.review-item-clean {
-  border: 1px solid #dbe3ee;
-  border-radius: 6px;
-  overflow: hidden;
-  background: #ffffff;
-}
-
-.review-item-clean .accordion-body {
-  border-top: 1px solid #e5e7eb;
-}
 
 /* =====================================================
-   FALLBACK PARA TU ESTRUCTURA ACTUAL SIN CLASES NUEVAS
-   Esto alinea también si todavía tienes d-flex normal
-===================================================== */
-
-.accordion-header > .d-flex.align-items-center.gap-2.w-100 {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) 235px;
-  align-items: center !important;
-  gap: 14px !important;
-  width: 100%;
-}
-
-.accordion-header > .d-flex.align-items-center.gap-2.w-100 > .accordion-button {
-  min-width: 0;
-  width: 100%;
-}
-
-.accordion-header > .d-flex.align-items-center.gap-2.w-100 > .badge {
-  width: 235px;
-  min-height: 40px;
-
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-
-  justify-self: end;
-
-  font-size: 1.25rem;
-  font-weight: 900;
-  border-radius: 7px;
-  padding: 9px 14px !important;
-  white-space: nowrap;
-}
-
-/* Evita que la fecha empuje la calificación */
-.accordion-header > .d-flex.align-items-center.gap-2.w-100 .accordion-button strong {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* =====================================================
-   RESPONSIVE
-===================================================== */
-
-@media (max-width: 768px) {
-  .review-score-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 8px;
-  }
-
-  .review-score-badge {
-    width: 100%;
-    justify-self: stretch;
-    font-size: 1rem;
-  }
-
-  .review-date-button {
-    min-height: 48px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px !important;
-  }
-
-  .accordion-header > .d-flex.align-items-center.gap-2.w-100 {
-    grid-template-columns: 1fr;
-    gap: 8px !important;
-    padding: 8px;
-  }
-
-  .accordion-header > .d-flex.align-items-center.gap-2.w-100 > .badge {
-    width: 100%;
-    justify-self: stretch;
-    font-size: 1rem;
-  }
-}
-
-/* =====================================================
-   BOTÓN EXPORTAR EXCEL ABAJO DE LA TABLA
+   BOTÃ“N EXPORTAR EXCEL ABAJO DE LA TABLA
 ===================================================== */
 
 .action-plan-export-footer {
@@ -2481,7 +2336,7 @@ img {
 
 
 /* =====================================================
-   REPORTES - DISEÑO LIMPIO Y MODERNO
+   REPORTES - DISEÃ‘O LIMPIO Y MODERNO
    Pegar al final de style.css
 ===================================================== */
 
@@ -2498,7 +2353,7 @@ body {
   border: 1px solid #e2e8f0;
 }
 
-/* Título */
+/* TÃ­tulo */
 .review-title {
   font-size: 2.2rem;
   font-weight: 900;
@@ -2534,7 +2389,7 @@ body {
   font-weight: 800;
 }
 
-/* Sección principal */
+/* SecciÃ³n principal */
 .business-unit-section {
   margin-top: 28px;
 }
@@ -2569,7 +2424,7 @@ body {
   border: none !important;
 }
 
-/* Botón accordion */
+/* BotÃ³n accordion */
 .business-unit-section .accordion-button {
   width: 100%;
   min-height: 62px;
@@ -2592,7 +2447,7 @@ body {
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10) !important;
 }
 
-/* Texto dentro del botón */
+/* Texto dentro del botÃ³n */
 .business-unit-section .accordion-button strong {
   font-size: 1.15rem;
   color: #0f172a;
@@ -2629,7 +2484,7 @@ body {
   background: #dc2626 !important;
 }
 
-/* Botón Plan de Acción */
+/* BotÃ³n Plan de AcciÃ³n */
 .business-unit-section .btn-warning {
   background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
   color: #111827 !important;
@@ -2768,3 +2623,220 @@ body {
     font-size: 0.8rem;
   }
 }
+
+section .accordion-body .accordion-header > .d-flex {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px !important;
+  align-items: center !important;
+  padding: 12px;
+}
+
+.business-unit-section .accordion-body .accordion-button {
+  min-height: 54px;
+  background: #f8fafc !important;
+  font-size: 1rem;
+  padding: 14px 18px;
+}
+
+.business-unit-section .accordion-body .accordion-button strong {
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.business-unit-section .accordion-body .accordion-header .badge {
+  min-width: 150px;
+  height: 42px;
+}
+
+.business-unit-section .table-responsive {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.business-unit-section .table {
+  margin-bottom: 0 !important;
+  font-size: 0.87rem;
+}
+
+.business-unit-section .table thead th {
+  background: #f1f5f9 !important;
+  color: #0f172a;
+  font-weight: 900;
+  border-bottom: 1px solid #dbe4ef !important;
+  padding: 14px 12px;
+  white-space: nowrap;
+}
+
+.business-unit-section .table tbody td {
+  color: #1e293b;
+  padding: 12px;
+  vertical-align: middle;
+  border-color: #e5e7eb !important;
+}
+
+.business-unit-section .table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.business-unit-section .table td:nth-child(3) {
+  line-height: 1.45;
+}
+
+.business-unit-section .table .badge {
+  min-width: 64px;
+  text-align: center;
+  padding: 6px 10px !important;
+}
+
+.business-unit-section button {
+  border-width: 0;
+}
+
+@media (max-width: 992px) {
+  .business-unit-section .accordion-header > .d-flex {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .business-unit-section .btn-warning {
+    width: 100%;
+  }
+
+  .business-unit-section .accordion-button {
+    width: 100%;
+  }
+
+  .business-unit-section .accordion-body .accordion-header > .d-flex {
+    grid-template-columns: 1fr;
+  }
+
+  .business-unit-section .accordion-body .accordion-header .badge {
+    width: 100%;
+  }
+
+  .business-unit-section .table {
+    font-size: 0.8rem;
+  }
+}
+
+.business-unit-section {
+  margin-top: 28px;
+}
+
+.business-unit-section .accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.business-unit-section .accordion-item {
+  border: 1px solid #dbe4ef !important;
+  border-radius: 18px !important;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+.business-unit-section .accordion-header {
+  margin: 0;
+}
+
+.business-unit-section .accordion-header > .d-flex {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100%;
+  background: #ffffff;
+  padding: 12px;
+  border: none !important;
+}
+
+.business-unit-section .accordion-button {
+  width: 100%;
+  min-height: 62px;
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%) !important;
+  color: #0f172a !important;
+  font-weight: 900;
+  font-size: 1.05rem;
+  padding: 16px 18px;
+}
+
+.business-unit-section .accordion-button:not(.collapsed) {
+  background: linear-gradient(90deg, #eff6ff 0%, #ffffff 100%) !important;
+  color: #0f172a !important;
+}
+
+.business-unit-section .accordion-button:focus {
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10) !important;
+}
+
+.business-unit-section .accordion-button strong {
+  font-size: 1.15rem;
+  color: #0f172a;
+  white-space: normal;
+}
+
+.business-unit-section .badge {
+  border-radius: 999px !important;
+  font-size: 0.85rem;
+  font-weight: 900;
+  padding: 8px 14px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.business-unit-section .bg-success {
+  background: #168a50 !important;
+}
+
+.business-unit-section .bg-primary {
+  background: #2563eb !important;
+}
+
+.business-unit-section .bg-warning {
+  background: #facc15 !important;
+  color: #111827 !important;
+}
+
+.business-unit-section .bg-danger {
+  background: #dc2626 !important;
+}
+
+.business-unit-section .btn-warning {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+  color: #111827 !important;
+  border: none !important;
+  border-radius: 999px !important;
+  font-weight: 900 !important;
+  padding: 10px 18px !important;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.25);
+  white-space: nowrap;
+  align-self: center;
+}
+
+.business-unit-section .btn-warning:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(245, 158, 11, 0.32);
+}
+
+.business-unit-section .accordion-body {
+  background: #ffffff;
+  padding: 22px;
+}
+
+.business-unit-section .accordion-body .accordion-item {
+  box-shadow: none;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+}
+
+
