@@ -704,7 +704,7 @@ window.cerrarMensajeExitoYRedirigir = cerrarMensajeExitoYRedirigir;
 // ======================================================
 // GUARDAR REVIEW COMPLETO
 // ======================================================
-async function guardarReview() {
+  async function guardarReview() {
   const info = JSON.parse(localStorage.getItem("reviewInfo"));
   const modulos = JSON.parse(localStorage.getItem("modulos"));
 
@@ -738,9 +738,10 @@ async function guardarReview() {
   };
 
   console.log("Enviando al backend:", data);
+  console.log("URL guardar review:", `${API_BASE}/api/reviews/guardar`);
 
   try {
-    const res = await fetch(`${API_BASE}/reviews/guardar`, {
+    const res = await fetch(`${API_BASE}/api/reviews/guardar`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -760,8 +761,8 @@ async function guardarReview() {
       };
     }
 
-    console.log("Respuesta HTTP:", res.status);
-    console.log("Respuesta servidor:", json);
+    console.log("Respuesta HTTP guardar review:", res.status);
+    console.log("Respuesta servidor guardar review:", json);
 
     if (res.ok && json.ok) {
       localStorage.removeItem("modulos");
@@ -771,7 +772,8 @@ async function guardarReview() {
 
       if (!mensaje) {
         console.error("No existe #mensajeExito en el HTML.");
-        alert("La auditoría se guardó, pero no se encontró el modal.");
+        alert("La auditoría se guardó correctamente.");
+        window.location.href = "index.html";
         return;
       }
 
@@ -780,7 +782,12 @@ async function guardarReview() {
     } else {
       alert(
         "No se pudo guardar el review.\n\n" +
-        (json.error || json.message || "El backend rechazó la solicitud.")
+        (
+          json.detalle ||
+          json.error ||
+          json.message ||
+          "El backend rechazó la solicitud."
+        )
       );
     }
   } catch (error) {
