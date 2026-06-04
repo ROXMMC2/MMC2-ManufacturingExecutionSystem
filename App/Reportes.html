@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <title>Detalle del Review - Model Line</title>
 
-  <link rel="stylesheet" href="../CSS/review_detalles.css"/>
-  <link rel="stylesheet" href="../CSS/style.css?v=904">
-  <!-- Bootstrap CSS -->
+  <!-- Bootstrap -->
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
     rel="stylesheet"
@@ -20,6 +17,8 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
   />
 
+  <!-- Tu CSS -->
+  <link rel="stylesheet" href="../CSS/style.css?v=900" />
 </head>
 
 <body>
@@ -52,7 +51,6 @@
         <div id="sidebarUserName" class="user-chip-name">Usuario</div>
         <div id="sidebarUserRole" class="user-chip-role">Usuario</div>
       </div>
-
       <hr class="sidebar-divider" />
 
       <nav class="sidebar-menu">
@@ -70,37 +68,44 @@
           <span class="sidebar-link-text">Nueva Auditoría</span>
         </a>
 
-        <div class="sidebar-link-group reports-menu-group">
-          <button
-            type="button"
-            id="btnReportsToggle"
-            class="sidebar-link sidebar-link-button"
-          >
-            <span class="sidebar-link-icon">
-              <i class="fa-solid fa-chart-line"></i>
-            </span>
-            <span class="sidebar-link-text">Reportes</span>
-            <span class="sidebar-link-caret">
-              <i class="fa-solid fa-chevron-down"></i>
-            </span>
-          </button>
+        <!-- REPORTS (BOTÓN DESPLEGABLE) -->
+      <div class="sidebar-link-group reports-menu-group">
 
-          <div id="reportsSubmenu" class="sidebar-submenu">
-            <a href="Reportes.html" class="sidebar-sublink">
-              <span class="sidebar-sublink-icon">
-                <i class="fa-solid fa-table-list"></i>
-              </span>
-              <span>Reportes</span>
-            </a>
+        <!-- BOTÓN PRINCIPAL (NO NAVEGA) -->
+        <button
+          type="button"
+          id="btnReportsToggle"
+          class="sidebar-link sidebar-link-button"
+        >
+          <span class="sidebar-link-icon">
+            <i class="fa-solid fa-chart-line"></i>
+          </span>
+          <span class="sidebar-link-text">Reportes</span>
+          <span class="sidebar-link-caret">
+            <i class="fa-solid fa-chevron-down"></i>
+          </span>
+        </button>
 
-            <a href="ActionPlan.html" class="sidebar-sublink">
-              <span class="sidebar-sublink-icon">
-                <i class="fa-solid fa-list-check"></i>
-              </span>
-              <span>Plan de Acción</span>
-            </a>
-          </div>
+        <!-- SUBMENÚ -->
+        <div id="reportsSubmenu" class="sidebar-submenu">
+
+          <a href="Reportes.html" class="sidebar-sublink">
+            <span class="sidebar-sublink-icon">
+              <i class="fa-solid fa-table-list"></i>
+            </span>
+            <span>Reportes</span>
+          </a>
+
+          <a href="ActionPlan.html" class="sidebar-sublink">
+            <span class="sidebar-sublink-icon">
+              <i class="fa-solid fa-list-check"></i>
+            </span>
+            <span>Plan de Acción</span>
+          </a>
+
         </div>
+      </div>
+
 
         <a href="PowerBi.html" class="sidebar-link">
           <span class="sidebar-link-icon">
@@ -108,30 +113,25 @@
           </span>
           <span class="sidebar-link-text">Análisis de Datos</span>
         </a>
-
-        <a
-          href="Configuracion.html"
-          class="sidebar-link"
-          id="menuSettings"
-          data-admin-only="true"
-        >
-          <span class="sidebar-link-icon">
-            <i class="fa-solid fa-gear"></i>
-          </span>
-          <span class="sidebar-link-text">Configuración</span>
-        </a>
       </nav>
 
+      <a href="Configuracion.html" class="sidebar-link" id="menuSettings" data-admin-only="true">
+        <span class="sidebar-link-icon">
+          <i class="fa-solid fa-gear"></i>
+        </span>
+        <span class="sidebar-link-text">Configuración</span>
+      </a>
+          
       <hr class="sidebar-divider" />
 
       <div class="sidebar-bottom">
-        <a href="#" class="sidebar-link" id="btnLogout">
-          <span class="sidebar-link-icon">
-            <i class="fa-solid fa-right-from-bracket"></i>
-          </span>
-          <span class="sidebar-link-text">Cerrar sesión</span>
-        </a>
-      </div>
+  <a href="#" class="sidebar-link" id="btnLogout">
+    <span class="sidebar-link-icon">
+      <i class="fa-solid fa-right-from-bracket"></i>
+    </span>
+    <span class="sidebar-link-text">Cerrar sesión</span>
+  </a>
+</div>
     </aside>
 
     <!-- Overlay móvil -->
@@ -143,7 +143,6 @@
         <div class="review-header">
           <div>
             <h1 class="review-title">Detalle del Review</h1>
-
             <p class="review-meta">
               <strong>Fecha actual:</strong>
               <span id="fechaHoy"></span>
@@ -151,19 +150,23 @@
           </div>
         </div>
 
+        <!-- Resumen / info -->
         <div id="info" class="review-info"></div>
+
         <div id="estadoCarga"></div>
+
         <div id="contenedorBusinessUnit" class="business-unit-section"></div>
       </div>
     </main>
   </div>
 
-  <!-- Bootstrap JS -->
+  <!-- Bootstrap -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Scripts propios -->
-  <script src="../JS/JavaScript.js?v=904"></script>
-  <script src="../JS/review_detalle.js?v=904"></script>
-  <script src="../JS/auth.js?v=904"></script>
+
+  <script src="../JS/JavaScript.js"></script>
+  <!-- Tu JS -->
+  <script src="../JS/review_detalle.js?v=900"></script>
+  <script src="../JS/auth.js"></script>
 </body>
 </html>
