@@ -14,9 +14,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   const btnExportarActionPlan = document.getElementById("btnExportarActionPlan");
 
-  // ======================================================
-  // STATUS CARDS
-  // ======================================================
   const statusCards = document.querySelectorAll(".action-status-card");
 
   const countTodos = document.getElementById("countTodos");
@@ -45,19 +42,26 @@ document.addEventListener("DOMContentLoaded", async function () {
   const modalEl = document.getElementById("modalHallazgo");
   const modal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
 
-  // ======================================================
-  // RESPONSABLES DESDE BASE DE DATOS
-  // ======================================================
   let responsablesActionPlan = [];
+  let preguntasCache = [];
+  let businessUnitsCache = [];
+  let productionLinesCache = [];
+  let actionPlanItemsCache = [];
 
-  // ======================================================
-  // PARÁMETROS URL
-  // ======================================================
   const params = new URLSearchParams(window.location.search);
   const buParam = params.get("bu");
   const plParam = params.get("pl");
 
   const actionPlanSubtitle = document.getElementById("actionPlanSubtitle");
+
+  const MODULES_BY_ID = {
+    "1": "Manufacturing Strategy",
+    "2": "Foundations",
+    "3": "High Performance Teams",
+    "4": "Quality at Source",
+    "5": "Safety First",
+    "6": "Design Improvement"
+  };
 
   if (actionPlanSubtitle) {
     if (buParam && plParam) {
@@ -69,23 +73,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         "Seguimiento de hallazgos, responsables, fechas compromiso y estatus.";
     }
   }
-
-  // ======================================================
-  // CACHES
-  // ======================================================
-  let preguntasCache = [];
-  let businessUnitsCache = [];
-  let productionLinesCache = [];
-  let actionPlanItemsCache = [];
-
-  const MODULES_BY_ID = {
-    "1": "Manufacturing Strategy",
-    "2": "Foundations",
-    "3": "High Performance Teams",
-    "4": "Quality at Source",
-    "5": "Safety First",
-    "6": "Design Improvement"
-  };
 
   // ======================================================
   // HELPERS
@@ -245,19 +232,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     const cierre = parseDateOnly(fechaCierre);
     const hoy = parseDateOnly(getToday());
 
-    if (cierre) {
-      return "CERRADO";
-    }
-
-    if (compromiso && hoy && compromiso < hoy) {
-      return "VENCIDO";
-    }
+    if (cierre) return "CERRADO";
+    if (compromiso && hoy && compromiso < hoy) return "VENCIDO";
 
     const estado = String(estadoManual || "").toUpperCase();
 
-    if (estado === "CERRADO") {
-      return "CERRADO";
-    }
+    if (estado === "CERRADO") return "CERRADO";
 
     return "ABIERTO";
   }
@@ -289,17 +269,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         method: "GET",
         cache: "no-store",
         headers: {
-          "Accept": "application/json"
+          Accept: "application/json"
         }
       });
 
       const data = await res.json().catch(() => ({}));
-
-      console.log("Respuesta /api/usuarios responsables:", {
-        status: res.status,
-        ok: res.ok,
-        data
-      });
 
       if (!res.ok) {
         throw new Error(
@@ -352,8 +326,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       responsablesActionPlan = [...new Set(responsablesActionPlan)]
         .sort((a, b) => a.localeCompare(b, "es"));
 
-      console.log("Responsables cargados desde Azure SQL:", responsablesActionPlan);
-
       llenarListaResponsables();
     } catch (error) {
       console.error("Error cargando responsables desde Azure SQL:", error);
@@ -370,18 +342,15 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     if (!datalist) return;
 
-    if (!responsablesActionPlan.length) {
-      datalist.innerHTML = "";
-      return;
-    }
-
     datalist.innerHTML = responsablesActionPlan
       .map((nombre) => `<option value="${escapeHTML(nombre)}"></option>`)
       .join("");
   }
 
   // ======================================================
-  // NORMALIZAR ACTION PLAN DESDE BACKEND
+  // NORMALIZAR BACKEND
+  // Tu tabla real usa snake_case:
+  // id_action_plan, creado_por, accion_requerida, fecha_compromiso, etc.
   // ======================================================
   function normalizarActionPlanBackend(item) {
     const fechaCompromiso = convertirFecha(
@@ -426,6 +395,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         item.creadoPorId ||
         item.idUsuario ||
         item.id_usuario ||
+        item.idusuario ||
         "",
 
       idBusinessUnit:
@@ -525,7 +495,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   // ======================================================
-  // CATÁLOGOS DESDE AZURE SQL
+  // CATÁLOGOS
   // ======================================================
   function normalizarBusinessUnit(bu) {
     return {
@@ -587,12 +557,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       const data = await res.json().catch(() => ({}));
 
-      console.log("Respuesta /api/catalogos ActionPlan:", {
-        status: res.status,
-        ok: res.ok,
-        data
-      });
-
       if (!res.ok || data.ok === false) {
         throw new Error(
           data.detalle ||
@@ -603,19 +567,12 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
 
       businessUnitsCache = Array.isArray(data.businessUnits)
-        ? data.businessUnits
-            .map(normalizarBusinessUnit)
-            .filter(bu => bu.id && bu.nombre)
+        ? data.businessUnits.map(normalizarBusinessUnit).filter(bu => bu.id && bu.nombre)
         : [];
 
       productionLinesCache = Array.isArray(data.productionLines)
-        ? data.productionLines
-            .map(normalizarProductionLine)
-            .filter(pl => pl.id && pl.nombre)
+        ? data.productionLines.map(normalizarProductionLine).filter(pl => pl.id && pl.nombre)
         : [];
-
-      console.log("Business Units ActionPlan desde BD:", businessUnitsCache);
-      console.log("Production Lines ActionPlan desde BD:", productionLinesCache);
     } catch (error) {
       console.error("Error cargando catálogos ActionPlan desde Azure SQL:", error);
 
@@ -720,7 +677,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   // ======================================================
-  // MÓDULO Y PREGUNTA
+  // PREGUNTAS
   // ======================================================
   function obtenerNombreModuloSeleccionado() {
     if (!hallazgoModulo) return "";
@@ -764,15 +721,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         ""
       ).trim(),
 
-      modulo: String(
-        q.modulo ??
-        q.module ??
-        q.nombre_modulo ??
-        q.nombreModulo ??
-        q.NombreModulo ??
-        ""
-      ).trim(),
-
       orden: Number(
         q.orden ??
         q.order ??
@@ -787,9 +735,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   async function cargarPreguntasDesdeBD() {
-    if (preguntasCache.length > 0) {
-      return preguntasCache;
-    }
+    if (preguntasCache.length > 0) return preguntasCache;
 
     try {
       const res = await fetch(`${API_BASE}/api/preguntas?t=${Date.now()}`, {
@@ -808,8 +754,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
 
       preguntasCache = data.map(normalizarPreguntaBD);
-
-      console.log("Preguntas cargadas para ActionPlan:", preguntasCache);
 
       return preguntasCache;
     } catch (error) {
@@ -879,13 +823,12 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     if (idPreguntaSeleccionada) {
       const option = hallazgoPregunta.options[hallazgoPregunta.selectedIndex];
-      const textoCompleto = option?.dataset?.texto || "";
-      actualizarPreviewPregunta(textoCompleto);
+      actualizarPreviewPregunta(option?.dataset?.texto || "");
     }
   }
 
   // ======================================================
-  // ACTION PLANS DESDE BACKEND
+  // ACTION PLANS
   // ======================================================
   function getItems() {
     return actionPlanItemsCache.map(normalizarActionPlanBackend);
@@ -907,7 +850,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         method: "GET",
         cache: "no-store",
         headers: {
-          "Accept": "application/json"
+          Accept: "application/json"
         }
       });
 
@@ -937,9 +880,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
-  // ======================================================
-  // FILTROS
-  // ======================================================
   function cargarFiltroBusinessUnit() {
     if (!filtroBusinessUnit) return;
 
@@ -1009,9 +949,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
   }
 
-  // ======================================================
-  // CONTADORES
-  // ======================================================
   function setStatusCardActive(status) {
     const statusActual = String(status || "").toUpperCase();
 
@@ -1110,9 +1047,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
   }
 
-  // ======================================================
-  // EXPORTAR EXCEL
-  // ======================================================
   function exportarActionPlanExcel() {
     if (typeof XLSX === "undefined") {
       alert("No se encontró la librería de Excel. Agrega SheetJS en el HTML antes de ActionPlan.js.");
@@ -1170,9 +1104,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     XLSX.writeFile(workbook, `Plan_de_Accion_${getToday()}.xlsx`);
   }
 
-  // ======================================================
-  // RENDER TABLA
-  // ======================================================
   function renderTable() {
     if (!tablaBody) return;
 
@@ -1207,21 +1138,14 @@ document.addEventListener("DOMContentLoaded", async function () {
         <tr>
           <td>${escapeHTML(formatDate(item.fecha))}</td>
 
-          <td class="creado-por-cell">
-            ${escapeHTML(item.creadoPor || "Usuario")}
-          </td>
+          <td class="creado-por-cell">${escapeHTML(item.creadoPor || "Usuario")}</td>
 
           <td>${escapeHTML(item.businessUnit)}</td>
           <td>${escapeHTML(item.productionLine)}</td>
           <td>${escapeHTML(item.modulo)}</td>
 
-          <td class="text-wrap-cell">
-            ${escapeHTML(item.pregunta)}
-          </td>
-
-          <td class="text-wrap-cell">
-            ${escapeHTML(item.accionRequerida)}
-          </td>
+          <td class="text-wrap-cell">${escapeHTML(item.pregunta)}</td>
+          <td class="text-wrap-cell">${escapeHTML(item.accionRequerida)}</td>
 
           <td>${escapeHTML(item.responsable)}</td>
           <td>${escapeHTML(formatDate(item.fechaCompromiso))}</td>
@@ -1274,9 +1198,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }).join("");
   }
 
-  // ======================================================
-  // FORMULARIO
-  // ======================================================
   function limpiarFormulario() {
     if (hallazgoId) hallazgoId.value = "";
     if (hallazgoFecha) hallazgoFecha.value = getToday();
@@ -1412,7 +1333,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         method,
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          Accept: "application/json"
         },
         body: JSON.stringify(payload)
       });
@@ -1506,7 +1427,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       const res = await fetch(`${API_ACTION_PLANS}/${encodeURIComponent(id)}/cerrar`, {
         method: "PATCH",
         headers: {
-          "Accept": "application/json"
+          Accept: "application/json"
         }
       });
 
@@ -1546,7 +1467,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       const res = await fetch(`${API_ACTION_PLANS}/${encodeURIComponent(id)}`, {
         method: "DELETE",
         headers: {
-          "Accept": "application/json",
+          Accept: "application/json",
           "x-user-role": role
         }
       });
@@ -1601,9 +1522,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   if (hallazgoPregunta) {
     hallazgoPregunta.addEventListener("change", function () {
       const option = hallazgoPregunta.options[hallazgoPregunta.selectedIndex];
-      const textoCompleto = option?.dataset?.texto || "";
-
-      actualizarPreviewPregunta(textoCompleto);
+      actualizarPreviewPregunta(option?.dataset?.texto || "");
     });
   }
 
