@@ -88,11 +88,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function getCurrentUser() {
-    /*
-      Primero intenta leer currentUser.
-      Si no existe, intenta leer user porque JavaScript.js también lo guarda.
-    */
-
     const rawCurrentUser = localStorage.getItem("currentUser");
     const rawUser = localStorage.getItem("user");
 
@@ -112,7 +107,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!user) return null;
 
-    // Asegura que siempre quede guardado como currentUser
+    // Asegura formato estándar
     localStorage.setItem("currentUser", JSON.stringify(user));
 
     return user;
@@ -188,21 +183,47 @@ document.addEventListener("DOMContentLoaded", function () {
   function protegerCrearPlanAccion() {
     if (!btnCrearPlanAccion) return;
 
-    btnCrearPlanAccion.addEventListener("click", function (e) {
+    btnCrearPlanAccion.addEventListener(
+      "click",
+      function (e) {
+        if (!isLoggedIn()) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+
+          alert("Para crear un Plan de Acción necesitas iniciar sesión.");
+          redirectToLogin();
+
+          return false;
+        }
+
+        return true;
+      },
+      true
+    );
+  }
+
+  // ======================================================
+  // VALIDAR MODAL PLAN DE ACCIÓN
+  // Esta función era la que faltaba.
+  // Evita que se abra el modal si no hay sesión.
+  // ======================================================
+  function protegerModalPlanAccion() {
+    if (!modalHallazgo) return;
+
+    modalHallazgo.addEventListener("show.bs.modal", function (e) {
       if (!isLoggedIn()) {
         e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
 
-        alert("Para crear un Plan de Acción necesitas iniciar sesión.");
+        alert("Para crear o editar un Plan de Acción necesitas iniciar sesión.");
         redirectToLogin();
 
         return false;
       }
-    }, true);
+
+      return true;
+    });
   }
-
-
 
   // ======================================================
   // MOSTRAR / OCULTAR MENÚS
