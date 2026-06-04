@@ -65,6 +65,7 @@ const usuariosRoutes = require("./routes/usuarios");
 const reviewsRoute = require("./routes/reviews");
 const preguntasRoutes = require("./routes/preguntas");
 const catalogosRoutes = require("./routes/catalogos");
+const actionPlansRoites = require("./routes/actionplan");
 // ===============================
 // MOUNT DE RUTAS API
 // ===============================
@@ -76,6 +77,7 @@ app.use("/api", preguntasRoutes);
 app.use("/api", catalogosRoutes);
 // Reviews
 app.use("/api/reviews", reviewsRoute);
+app.use("/api/action-plans, actionPlansRoutes");
 // ===============================
 // RUTA PRINCIPAL DEL FRONTEND
 // ===============================
@@ -108,5 +110,5 @@ app.use((req, res) => {
 // ===============================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
- console.log(`✅ Servidor corriendo en puerto ${PORT}`);
+ console.log(`Servidor corriendo en puerto ${PORT}`);
 });
