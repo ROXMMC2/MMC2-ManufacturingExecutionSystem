@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const { poolPromise, sql } = require("../db");
+// CORRECCIÓN: Importamos getPool en lugar de poolPromise
+const { getPool, sql } = require("../db");
 // ======================================================
 // HELPERS
 // ======================================================
@@ -36,7 +37,8 @@ function getDetalleError(error) {
 // ======================================================
 router.get("/", async (req, res) => {
  try {
-   const pool = await poolPromise;
+   // CORRECCIÓN: Usamos la función getPool()
+   const pool = await getPool();
    const result = await pool.request().query(`
      SELECT
        id_action_plan AS id,
@@ -122,7 +124,8 @@ router.post("/", async (req, res) => {
    if (!accionRequerida) return res.status(400).json({ ok: false, error: "Falta acción requerida" });
    if (!responsable) return res.status(400).json({ ok: false, error: "Falta responsable" });
    if (!fechaCompromiso) return res.status(400).json({ ok: false, error: "Falta fecha compromiso" });
-   const pool = await poolPromise;
+   // CORRECCIÓN: Usamos la función getPool()
+   const pool = await getPool();
    const result = await pool.request()
      .input("fecha", sql.Date, toDateOrNull(fecha))
      .input("id_usuario", sql.Int, toIntOrNull(creadoPorId))
@@ -231,7 +234,8 @@ router.put("/:id", async (req, res) => {
      fechaCierre,
      estado
    } = req.body;
-   const pool = await poolPromise;
+   // CORRECCIÓN: Usamos la función getPool()
+   const pool = await getPool();
    const result = await pool.request()
      .input("id_action_plan", sql.Int, Number(id))
      .input("fecha", sql.Date, toDateOrNull(fecha))
@@ -336,7 +340,8 @@ router.patch("/:id/cerrar", async (req, res) => {
    if (!id || Number.isNaN(Number(id))) {
      return res.status(400).json({ ok: false, error: "ID inválido" });
    }
-   const pool = await poolPromise;
+   // CORRECCIÓN: Usamos la función getPool()
+   const pool = await getPool();
    const result = await pool.request()
      .input("id_action_plan", sql.Int, Number(id))
      .query(`
@@ -422,7 +427,8 @@ router.delete("/:id", async (req, res) => {
        error: "Solo un administrador puede eliminar planes de acción."
      });
    }
-   const pool = await poolPromise;
+   // CORRECCIÓN: Usamos la función getPool()
+   const pool = await getPool();
    const result = await pool.request()
      .input("id_action_plan", sql.Int, Number(id))
      .query(`
