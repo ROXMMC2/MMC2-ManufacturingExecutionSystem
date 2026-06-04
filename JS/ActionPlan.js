@@ -1,7 +1,10 @@
 document.addEventListener("DOMContentLoaded", async function () {
-  const API_BASE = "http://localhost:3000";
+  const API_BASE = "";
   const API_ACTION_PLANS = `${API_BASE}/api/action-plans`;
 
+  // ======================================================
+  // ELEMENTOS PRINCIPALES
+  // ======================================================
   const tablaBody = document.getElementById("tablaActionPlanBody");
 
   const filtroEstado = document.getElementById("filtroEstado");
@@ -21,6 +24,9 @@ document.addEventListener("DOMContentLoaded", async function () {
   const countVencidos = document.getElementById("countVencidos");
   const countCerrados = document.getElementById("countCerrados");
 
+  // ======================================================
+  // FORMULARIO / MODAL
+  // ======================================================
   const btnGuardarHallazgo = document.getElementById("btnGuardarHallazgo");
 
   const hallazgoId = document.getElementById("hallazgoId");
@@ -40,72 +46,9 @@ document.addEventListener("DOMContentLoaded", async function () {
   const modal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
 
   // ======================================================
-  // RESPONSABLES PARA PLAN DE ACCIÓN
+  // RESPONSABLES DESDE BASE DE DATOS
   // ======================================================
-  const RESPONSABLES_FALLBACK = [
-    "Gilberto Hernandez Valdez",
-    "Carlos Barranco (RME)",
-    "Ivonne Abigail Barrera Martinez",
-    "Juan Manuel Mendoza Martinez",
-    "Francisco Antonio Cisneros Guevara",
-    "Armando Macias (RME)",
-    "Victor Manuel Gamez Garza"
-  ];
-
   let responsablesActionPlan = [];
-
-  async function cargarResponsablesActionPlan() {
-    try {
-      const res = await fetch(`${API_BASE}/api/usuarios?t=${Date.now()}`, {
-        method: "GET",
-        cache: "no-store"
-      });
-
-      if (!res.ok) {
-        throw new Error("No se pudieron cargar usuarios desde BD.");
-      }
-
-      const data = await res.json();
-
-      if (!Array.isArray(data)) {
-        throw new Error("La respuesta de usuarios no es un arreglo.");
-      }
-
-      responsablesActionPlan = data
-        .map((u) => {
-          return String(
-            u.nombre ??
-            u.Nombre ??
-            u.name ??
-            u.Name ??
-            ""
-          ).trim();
-        })
-        .filter((nombre) => nombre !== "");
-
-      if (!responsablesActionPlan.length) {
-        responsablesActionPlan = [...RESPONSABLES_FALLBACK];
-      }
-
-    } catch (error) {
-      console.warn("⚠️ Usando responsables fallback:", error.message);
-      responsablesActionPlan = [...RESPONSABLES_FALLBACK];
-    }
-
-    responsablesActionPlan = [...new Set(responsablesActionPlan)]
-      .sort((a, b) => a.localeCompare(b, "es"));
-
-    llenarListaResponsables();
-  }
-
-  function llenarListaResponsables() {
-    const datalist = document.getElementById("listaResponsables");
-    if (!datalist) return;
-
-    datalist.innerHTML = responsablesActionPlan
-      .map((nombre) => `<option value="${escapeHTML(nombre)}"></option>`)
-      .join("");
-  }
 
   // ======================================================
   // PARÁMETROS URL
@@ -179,6 +122,15 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(texto)) {
       const parts = texto.split("/");
+      const mm = String(parts[0]).padStart(2, "0");
+      const dd = String(parts[1]).padStart(2, "0");
+      const yyyy = parts[2];
+
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(texto)) {
+      const parts = texto.split("-");
       const mm = String(parts[0]).padStart(2, "0");
       const dd = String(parts[1]).padStart(2, "0");
       const yyyy = parts[2];
@@ -315,6 +267,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     if (e === "VENCIDO") return "estado-vencido";
     if (e === "CERRADO") return "estado-cerrado";
+
     return "estado-abierto";
   }
 
@@ -326,7 +279,109 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   // ======================================================
-  // NORMALIZAR PLAN DESDE BACKEND
+  // RESPONSABLES DESDE AZURE SQL
+  // ======================================================
+  async function cargarResponsablesActionPlan() {
+    responsablesActionPlan = [];
+
+    try {
+      const res = await fetch(`${API_BASE}/api/usuarios?t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      console.log("Respuesta /api/usuarios responsables:", {
+        status: res.status,
+        ok: res.ok,
+        data
+      });
+
+      if (!res.ok) {
+        throw new Error(
+          data.detalle ||
+          data.error ||
+          data.message ||
+          `Error HTTP ${res.status} cargando responsables.`
+        );
+      }
+
+      const usuarios = Array.isArray(data)
+        ? data
+        : Array.isArray(data.usuarios)
+          ? data.usuarios
+          : Array.isArray(data.users)
+            ? data.users
+            : Array.isArray(data.data)
+              ? data.data
+              : [];
+
+      responsablesActionPlan = usuarios
+        .filter((u) => {
+          const activo =
+            u.activo ??
+            u.Activo ??
+            u.active ??
+            u.isActive ??
+            1;
+
+          return (
+            String(activo) === "1" ||
+            activo === true ||
+            String(activo).toLowerCase() === "true"
+          );
+        })
+        .map((u) => {
+          return String(
+            u.nombre ??
+            u.Nombre ??
+            u.name ??
+            u.Name ??
+            u.usuario ??
+            u.Usuario ??
+            u.username ??
+            ""
+          ).trim();
+        })
+        .filter((nombre) => nombre !== "");
+
+      responsablesActionPlan = [...new Set(responsablesActionPlan)]
+        .sort((a, b) => a.localeCompare(b, "es"));
+
+      console.log("Responsables cargados desde Azure SQL:", responsablesActionPlan);
+
+      llenarListaResponsables();
+    } catch (error) {
+      console.error("Error cargando responsables desde Azure SQL:", error);
+
+      responsablesActionPlan = [];
+      llenarListaResponsables();
+
+      alert("No se pudieron cargar los responsables desde la base de datos.");
+    }
+  }
+
+  function llenarListaResponsables() {
+    const datalist = document.getElementById("listaResponsables");
+
+    if (!datalist) return;
+
+    if (!responsablesActionPlan.length) {
+      datalist.innerHTML = "";
+      return;
+    }
+
+    datalist.innerHTML = responsablesActionPlan
+      .map((nombre) => `<option value="${escapeHTML(nombre)}"></option>`)
+      .join("");
+  }
+
+  // ======================================================
+  // NORMALIZAR ACTION PLAN DESDE BACKEND
   // ======================================================
   function normalizarActionPlanBackend(item) {
     const fechaCompromiso = convertirFecha(
@@ -470,24 +525,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   // ======================================================
-  // APP CONFIG / CATÁLOGOS
+  // CATÁLOGOS DESDE AZURE SQL
   // ======================================================
-  function getAppConfigSeguroActionPlan() {
-    try {
-      return JSON.parse(localStorage.getItem("appConfig")) || {
-        businessUnits: [],
-        productionLines: []
-      };
-    } catch (error) {
-      console.error("❌ Error leyendo appConfig:", error);
-
-      return {
-        businessUnits: [],
-        productionLines: []
-      };
-    }
-  }
-
   function normalizarBusinessUnit(bu) {
     return {
       id: String(
@@ -539,29 +578,56 @@ document.addEventListener("DOMContentLoaded", async function () {
     };
   }
 
-  function cargarCatalogosDesdeAppConfig() {
-    const config = getAppConfigSeguroActionPlan();
+  async function cargarCatalogosDesdeBD() {
+    try {
+      const res = await fetch(`${API_BASE}/api/catalogos?t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store"
+      });
 
-    businessUnitsCache = Array.isArray(config.businessUnits)
-      ? config.businessUnits
-          .map(normalizarBusinessUnit)
-          .filter(bu => bu.id && bu.nombre)
-      : [];
+      const data = await res.json().catch(() => ({}));
 
-    productionLinesCache = Array.isArray(config.productionLines)
-      ? config.productionLines
-          .map(normalizarProductionLine)
-          .filter(pl => pl.id && pl.nombre)
-      : [];
+      console.log("Respuesta /api/catalogos ActionPlan:", {
+        status: res.status,
+        ok: res.ok,
+        data
+      });
 
-    console.log("📌 Business Units ActionPlan:", businessUnitsCache);
-    console.log("📌 Production Lines ActionPlan:", productionLinesCache);
+      if (!res.ok || data.ok === false) {
+        throw new Error(
+          data.detalle ||
+          data.error ||
+          data.message ||
+          "No se pudieron cargar los catálogos."
+        );
+      }
+
+      businessUnitsCache = Array.isArray(data.businessUnits)
+        ? data.businessUnits
+            .map(normalizarBusinessUnit)
+            .filter(bu => bu.id && bu.nombre)
+        : [];
+
+      productionLinesCache = Array.isArray(data.productionLines)
+        ? data.productionLines
+            .map(normalizarProductionLine)
+            .filter(pl => pl.id && pl.nombre)
+        : [];
+
+      console.log("Business Units ActionPlan desde BD:", businessUnitsCache);
+      console.log("Production Lines ActionPlan desde BD:", productionLinesCache);
+    } catch (error) {
+      console.error("Error cargando catálogos ActionPlan desde Azure SQL:", error);
+
+      businessUnitsCache = [];
+      productionLinesCache = [];
+
+      alert("No se pudieron cargar Business Units y Production Lines desde la base de datos.");
+    }
   }
 
   function llenarBusinessUnitsSelect(valorSeleccionado = "") {
     if (!hallazgoBusinessUnit) return;
-
-    cargarCatalogosDesdeAppConfig();
 
     const businessUnitsOrdenadas = [...businessUnitsCache].sort((a, b) =>
       a.nombre.localeCompare(b.nombre, "es")
@@ -743,11 +809,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       preguntasCache = data.map(normalizarPreguntaBD);
 
-      console.log("✅ Preguntas cargadas para ActionPlan:", preguntasCache);
+      console.log("Preguntas cargadas para ActionPlan:", preguntasCache);
 
       return preguntasCache;
     } catch (error) {
-      console.error("❌ Error cargando preguntas:", error);
+      console.error("Error cargando preguntas:", error);
       return [];
     }
   }
@@ -819,7 +885,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   // ======================================================
-  // BASE DE DATOS / BACKEND
+  // ACTION PLANS DESDE BACKEND
   // ======================================================
   function getItems() {
     return actionPlanItemsCache.map(normalizarActionPlanBackend);
@@ -857,7 +923,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       cargarFiltroBusinessUnit();
       renderTable();
     } catch (error) {
-      console.error("❌ Error cargando planes desde BD:", error);
+      console.error("Error cargando planes desde BD:", error);
 
       if (tablaBody) {
         tablaBody.innerHTML = `
@@ -944,7 +1010,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   // ======================================================
-  // CONTADORES Y FILTRO POR STATUS CARDS
+  // CONTADORES
   // ======================================================
   function setStatusCardActive(status) {
     const statusActual = String(status || "").toUpperCase();
@@ -1146,9 +1212,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           </td>
 
           <td>${escapeHTML(item.businessUnit)}</td>
-
           <td>${escapeHTML(item.productionLine)}</td>
-
           <td>${escapeHTML(item.modulo)}</td>
 
           <td class="text-wrap-cell">
@@ -1160,9 +1224,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           </td>
 
           <td>${escapeHTML(item.responsable)}</td>
-
           <td>${escapeHTML(formatDate(item.fechaCompromiso))}</td>
-
           <td>${escapeHTML(formatDate(item.fechaCierre))}</td>
 
           <td>
@@ -1371,7 +1433,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       await cargarActionPlansDesdeBD();
     } catch (error) {
-      console.error("❌ Error guardando plan en BD:", error);
+      console.error("Error guardando plan en BD:", error);
       alert("No se pudo guardar el plan de acción en la base de datos.");
     }
   }
@@ -1415,6 +1477,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   window.cerrarAccion = async function (id) {
     const ok = confirm("¿Seguro que deseas cerrar esta acción?");
+
     if (!ok) return;
 
     try {
@@ -1440,7 +1503,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       await cargarActionPlansDesdeBD();
     } catch (error) {
-      console.error("❌ Error cerrando acción en BD:", error);
+      console.error("Error cerrando acción en BD:", error);
       alert("No se pudo cerrar la acción en la base de datos.");
     }
   };
@@ -1452,6 +1515,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     const ok = confirm("¿Seguro que deseas eliminar este plan de acción?");
+
     if (!ok) return;
 
     try {
@@ -1480,7 +1544,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       await cargarActionPlansDesdeBD();
     } catch (error) {
-      console.error("❌ Error eliminando plan en BD:", error);
+      console.error("Error eliminando plan en BD:", error);
       alert("No se pudo eliminar el plan de acción en la base de datos.");
     }
   };
@@ -1552,11 +1616,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   // ======================================================
   // INICIO
   // ======================================================
-  cargarCatalogosDesdeAppConfig();
-
+  await cargarCatalogosDesdeBD();
   await cargarResponsablesActionPlan();
 
   limpiarFormulario();
   inicializarStatusCards();
+
   await cargarActionPlansDesdeBD();
 });

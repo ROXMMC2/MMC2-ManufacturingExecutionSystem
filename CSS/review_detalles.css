@@ -1,0 +1,313 @@
+/* =====================================================
+   REPORTES REVIEW - DISEÑO MODERNO AISLADO
+   Solo afecta #contenedorBusinessUnit
+===================================================== */
+
+#contenedorBusinessUnit {
+  margin-top: 32px;
+}
+
+/* Contenedor general */
+#contenedorBusinessUnit .accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Cards generales */
+#contenedorBusinessUnit .accordion-item {
+  border: 1px solid #dbe4ef !important;
+  border-radius: 22px !important;
+  background: #ffffff !important;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+/* Quitar look gris feo */
+#contenedorBusinessUnit .accordion-header {
+  background: #ffffff !important;
+  margin: 0 !important;
+}
+
+/* Header BU / PL */
+#contenedorBusinessUnit .accordion-header > .d-flex {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center !important;
+  gap: 14px !important;
+  width: 100%;
+  padding: 14px !important;
+  background: #ffffff !important;
+}
+
+/* Botón accordion */
+#contenedorBusinessUnit .accordion-button {
+  border: 1px solid #edf2f7 !important;
+  border-radius: 18px !important;
+  min-height: 64px;
+  padding: 16px 20px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  color: #0f172a !important;
+  box-shadow: none !important;
+  font-weight: 900;
+}
+
+#contenedorBusinessUnit .accordion-button:not(.collapsed) {
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%) !important;
+  color: #0f172a !important;
+}
+
+#contenedorBusinessUnit .accordion-button:focus {
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10) !important;
+}
+
+/* Nombre IDB / Carrier */
+#contenedorBusinessUnit .accordion-button strong {
+  font-size: 1.35rem !important;
+  font-weight: 950 !important;
+  color: #0f172a !important;
+  line-height: 1.1;
+}
+
+/* Contenido dentro del botón */
+#contenedorBusinessUnit .accordion-button .d-flex {
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+/* Badges */
+#contenedorBusinessUnit .badge {
+  border-radius: 999px !important;
+  padding: 9px 16px !important;
+  font-size: 0.85rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+#contenedorBusinessUnit .bg-success {
+  background: #168a50 !important;
+}
+
+#contenedorBusinessUnit .bg-primary {
+  background: #2563eb !important;
+}
+
+#contenedorBusinessUnit .bg-warning {
+  background: #facc15 !important;
+  color: #111827 !important;
+}
+
+#contenedorBusinessUnit .bg-danger {
+  background: #dc2626 !important;
+}
+
+/* Botón Plan de Acción */
+#contenedorBusinessUnit .btn-warning {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+  color: #111827 !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 11px 20px !important;
+  min-height: 44px !important;
+  font-size: 0.95rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.28);
+  white-space: nowrap;
+  text-align: center;
+}
+
+#contenedorBusinessUnit .btn-warning:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(245, 158, 11, 0.35);
+}
+
+/* Cuerpo */
+#contenedorBusinessUnit .accordion-body {
+  padding: 22px !important;
+  background: #ffffff !important;
+}
+
+/* Nivel Production Line */
+#contenedorBusinessUnit .accordion-body > .accordion {
+  gap: 18px;
+}
+
+/* Reviews internos */
+#contenedorBusinessUnit .accordion-body .accordion-item {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 20px !important;
+  box-shadow: none !important;
+}
+
+/* Header review: fecha + badge */
+#contenedorBusinessUnit .accordion-body .accordion-header > .d-flex.align-items-center.gap-2.w-100 {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px !important;
+  background: #ffffff !important;
+}
+
+/* Botón fecha review */
+#contenedorBusinessUnit .accordion-body .accordion-header .accordion-button {
+  min-height: 56px !important;
+  border-radius: 16px !important;
+  background: #f8fafc !important;
+  border: 1px solid #edf2f7 !important;
+  padding: 14px 18px !important;
+}
+
+/* Texto fecha */
+#contenedorBusinessUnit .accordion-body .accordion-header .accordion-button strong {
+  font-size: 1.05rem !important;
+  font-weight: 900 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Badge Final */
+#contenedorBusinessUnit .accordion-body .accordion-header > .d-flex.align-items-center.gap-2.w-100 > .badge {
+  min-width: 170px;
+  height: 44px;
+}
+
+/* Tabla */
+#contenedorBusinessUnit .table-responsive {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  background: #ffffff;
+}
+
+#contenedorBusinessUnit .table {
+  margin-bottom: 0 !important;
+  font-size: 0.88rem;
+}
+
+#contenedorBusinessUnit .table thead th {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  font-weight: 900 !important;
+  padding: 14px 12px !important;
+  border-bottom: 1px solid #dbe4ef !important;
+  white-space: nowrap;
+}
+
+#contenedorBusinessUnit .table tbody td {
+  color: #1e293b !important;
+  padding: 13px 12px !important;
+  vertical-align: middle !important;
+  border-color: #edf2f7 !important;
+}
+
+#contenedorBusinessUnit .table tbody tr:hover {
+  background: #f8fafc !important;
+}
+
+/* Pregunta más cómoda */
+#contenedorBusinessUnit .table td:nth-child(3) {
+  line-height: 1.5;
+}
+
+/* Puntuación */
+#contenedorBusinessUnit .table .badge {
+  min-width: 70px;
+  padding: 7px 12px !important;
+}
+
+/* =====================================================
+   RESUMEN SUPERIOR
+===================================================== */
+
+.review-info .border {
+  border: 1px solid #dbe4ef !important;
+  border-radius: 18px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.review-info strong {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.review-info span {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 1.1rem;
+  color: #0f172a;
+  font-weight: 900;
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 992px) {
+  #contenedorBusinessUnit .accordion-header > .d-flex {
+    grid-template-columns: 1fr !important;
+  }
+
+  #contenedorBusinessUnit .btn-warning {
+    width: 100%;
+    margin: 0 !important;
+  }
+
+  #contenedorBusinessUnit .accordion-button .d-flex {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  #contenedorBusinessUnit .accordion-body .accordion-header > .d-flex.align-items-center.gap-2.w-100 {
+    grid-template-columns: 1fr !important;
+  }
+
+  #contenedorBusinessUnit .accordion-body .accordion-header > .d-flex.align-items-center.gap-2.w-100 > .badge {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #contenedorBusinessUnit .accordion-body .accordion-header .accordion-button strong {
+    white-space: normal;
+  }
+
+  #contenedorBusinessUnit .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #contenedorBusinessUnit .table {
+    min-width: 760px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 576px) {
+  #contenedorBusinessUnit .accordion-body {
+    padding: 14px !important;
+  }
+
+  #contenedorBusinessUnit .accordion-item {
+    border-radius: 16px !important;
+  }
+
+  #contenedorBusinessUnit .accordion-button strong {
+    font-size: 1.05rem !important;
+  }
+
+  #contenedorBusinessUnit .badge {
+    font-size: 0.78rem !important;
+  }
+
+  #contenedorBusinessUnit .table {
+    min-width: 720px;
+    font-size: 0.78rem;
+  }
+}
