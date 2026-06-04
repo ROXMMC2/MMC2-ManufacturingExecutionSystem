@@ -1,6 +1,17 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+// ===============================
+// IMPORTACIÓN DE RUTAS
+// ===============================
+const usuariosRoutes = require("./routes/usuarios");
+const preguntasRoutes = require("./routes/preguntas");
+const catalogosRoutes = require("./routes/catalogos");
+const reviewsRoute = require("./routes/reviews");
+const actionPlansRoutes = require("./routes/actionplan");
+// ===============================
+// INICIALIZACIÓN DE LA APP
+// ===============================
 const app = express();
 // ===============================
 // MIDDLEWARES
@@ -9,7 +20,17 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // ===============================
-// HEALTH CHECK
+// ARCHIVOS ESTÁTICOS FRONTEND
+// ===============================
+// En Azure, App, CSS, JS e Images deben quedar al mismo nivel que server.js.
+app.use(express.static(path.join(__dirname, "App")));
+app.use("/CSS", express.static(path.join(__dirname, "CSS")));
+app.use("/JS", express.static(path.join(__dirname, "JS")));
+app.use("/Images", express.static(path.join(__dirname, "Images")));
+// También dejamos /App disponible por si algún link usa /App/archivo.html
+app.use("/App", express.static(path.join(__dirname, "App")));
+// ===============================
+// HEALTH CHECK Y PRUEBAS DB
 // ===============================
 // Sirve para validar que Azure sí está ejecutando Node correctamente.
 app.get("/health", (req, res) => {
@@ -18,9 +39,6 @@ app.get("/health", (req, res) => {
    message: "Servidor corriendo correctamente"
  });
 });
-// ===============================
-// DB TEST - AZURE SQL DATABASE
-// ===============================
 // Sirve para probar conexión directa con Azure SQL Database.
 app.get("/db-test", async (req, res) => {
  try {
@@ -49,25 +67,7 @@ app.get("/db-test", async (req, res) => {
  }
 });
 // ===============================
-// ARCHIVOS ESTÁTICOS FRONTEND
-// ===============================
-// En Azure, App, CSS, JS e Images deben quedar al mismo nivel que server.js.
-app.use(express.static(path.join(__dirname, "App")));
-app.use("/CSS", express.static(path.join(__dirname, "CSS")));
-app.use("/JS", express.static(path.join(__dirname, "JS")));
-app.use("/Images", express.static(path.join(__dirname, "Images")));
-// También dejamos /App disponible por si algún link usa /App/archivo.html
-app.use("/App", express.static(path.join(__dirname, "App")));
-// ===============================
-// RUTAS BACKEND
-// ===============================
-const usuariosRoutes = require("./routes/usuarios");
-const reviewsRoute = require("./routes/reviews");
-const preguntasRoutes = require("./routes/preguntas");
-const catalogosRoutes = require("./routes/catalogos");
-const actionPlansRoites = require("./routes/actionplan");
-// ===============================
-// MOUNT DE RUTAS API
+// MOUNT DE RUTAS API (BACKEND)
 // ===============================
 // Usuarios
 app.use("/api", usuariosRoutes);
@@ -77,7 +77,8 @@ app.use("/api", preguntasRoutes);
 app.use("/api", catalogosRoutes);
 // Reviews
 app.use("/api/reviews", reviewsRoute);
-app.use("/api/action-plans, actionPlansRoutes");
+// Planes de Acción
+app.use("/api/action-plans", actionPlansRoutes);
 // ===============================
 // RUTA PRINCIPAL DEL FRONTEND
 // ===============================
@@ -95,7 +96,7 @@ app.get("/", (req, res) => {
  });
 });
 // ===============================
-// MANEJO DE RUTAS NO ENCONTRADAS
+// MANEJO DE RUTAS NO ENCONTRADAS (404)
 // ===============================
 // Este bloque SIEMPRE debe ir después de todas las rutas.
 app.use((req, res) => {
