@@ -3286,5 +3286,248 @@ section .accordion-body .accordion-header > .d-flex {
     width: 100% !important;
   }
 }
+/* =====================================================
+   FIX DEFINITIVO REPORTES - ACCORDION + ACTION PLAN
+   PEGAR AL FINAL DE style.css
+===================================================== */
 
+/* Contenedor general */
+#contenedorBusinessUnit {
+  margin-top: 24px !important;
+}
+
+/* Separación entre niveles */
+#contenedorBusinessUnit .accordion {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+/* Cada tarjeta del accordion */
+#contenedorBusinessUnit .accordion-item {
+  border: 1px solid #dbe4ef !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  overflow: hidden !important;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Header */
+#contenedorBusinessUnit .accordion-header {
+  margin: 0 !important;
+  background: #ffffff !important;
+}
+
+/* Fila: botón desplegable + Plan de Acción */
+#contenedorBusinessUnit .accordion-header > .d-flex {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 170px !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  padding: 10px 12px !important;
+  background: #ffffff !important;
+}
+
+/* Botón desplegable */
+#contenedorBusinessUnit .accordion-button {
+  min-height: 52px !important;
+  width: 100% !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+  padding: 10px 14px !important;
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+}
+
+/* Cuando está abierto */
+#contenedorBusinessUnit .accordion-button:not(.collapsed) {
+  background: #eff6ff !important;
+  color: #0f172a !important;
+  box-shadow: none !important;
+}
+
+/* Flechita de Bootstrap visible y alineada */
+#contenedorBusinessUnit .accordion-button::after {
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+}
+
+/* Contenido dentro del accordion button */
+#contenedorBusinessUnit .accordion-button > .d-flex {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  padding-right: 14px !important;
+}
+
+/* Texto IDB / Carrier / fecha */
+#contenedorBusinessUnit .accordion-button strong {
+  font-size: 1rem !important;
+  font-weight: 900 !important;
+  color: #0f172a !important;
+  line-height: 1.2 !important;
+  text-align: left !important;
+}
+
+/* Badges verdes */
+#contenedorBusinessUnit .badge {
+  border-radius: 999px !important;
+  font-size: 0.76rem !important;
+  font-weight: 900 !important;
+  padding: 7px 12px !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+  min-width: auto !important;
+  height: auto !important;
+}
+
+/* Colores de badges */
+#contenedorBusinessUnit .bg-success {
+  background: #168a50 !important;
+  color: #ffffff !important;
+}
+
+#contenedorBusinessUnit .bg-primary {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+#contenedorBusinessUnit .bg-warning {
+  background: #facc15 !important;
+  color: #111827 !important;
+}
+
+#contenedorBusinessUnit .bg-danger {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+/* Botón Plan de Acción */
+#contenedorBusinessUnit .btn-warning {
+  width: 170px !important;
+  min-width: 170px !important;
+  height: 42px !important;
+  border: none !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+  color: #111827 !important;
+  font-size: 0.9rem !important;
+  font-weight: 900 !important;
+  padding: 8px 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.24) !important;
+  margin: 0 !important;
+}
+
+/* Hover Plan de Acción */
+#contenedorBusinessUnit .btn-warning:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 24px rgba(245, 158, 11, 0.34) !important;
+}
+
+/* Cuerpo accordion */
+#contenedorBusinessUnit .accordion-body {
+  padding: 18px !important;
+  background: #ffffff !important;
+}
+
+/* Header interno del review: fecha + final score */
+#contenedorBusinessUnit .accordion-body .accordion-header > .d-flex.align-items-center.gap-2.w-100 {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 165px !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 12px !important;
+}
+
+/* Botón del review */
+#contenedorBusinessUnit .accordion-body .accordion-header .accordion-button {
+  min-height: 50px !important;
+}
+
+/* Texto fecha reviewer */
+#contenedorBusinessUnit .accordion-body .accordion-header .accordion-button strong {
+  font-size: 1rem !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+}
+
+/* Badge Final */
+#contenedorBusinessUnit .accordion-body .accordion-header .badge {
+  width: 165px !important;
+  height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Tabla interna */
+#contenedorBusinessUnit .table-responsive {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  overflow: auto !important;
+  background: #ffffff !important;
+}
+
+#contenedorBusinessUnit .table {
+  margin-bottom: 0 !important;
+  font-size: 0.86rem !important;
+}
+
+#contenedorBusinessUnit .table thead th {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  font-weight: 900 !important;
+  padding: 12px !important;
+  border-bottom: 1px solid #dbe4ef !important;
+  white-space: nowrap !important;
+}
+
+#contenedorBusinessUnit .table tbody td {
+  padding: 12px !important;
+  vertical-align: top !important;
+  color: #1e293b !important;
+  border-color: #e5e7eb !important;
+}
+
+#contenedorBusinessUnit .table tbody tr:hover {
+  background: #f8fafc !important;
+}
+
+/* Evitar textos gigantes por estilos previos */
+#contenedorBusinessUnit h2,
+#contenedorBusinessUnit h3,
+#contenedorBusinessUnit h4,
+#contenedorBusinessUnit h5 {
+  font-size: inherit !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  #contenedorBusinessUnit .accordion-header > .d-flex {
+    grid-template-columns: 1fr !important;
+  }
+
+  #contenedorBusinessUnit .btn-warning {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  #contenedorBusinessUnit .accordion-body .accordion-header > .d-flex.align-items-center.gap-2.w-100 {
+    grid-template-columns: 1fr !important;
+  }
+
+  #contenedorBusinessUnit .accordion-body .accordion-header .badge {
+    width: 100% !important;
+  }
+}
 
