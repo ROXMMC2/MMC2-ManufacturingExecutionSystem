@@ -91,15 +91,15 @@ document.addEventListener("DOMContentLoaded", async function () {
   // HELPERS
   // ======================================================
   function escapeHTML(value) {
-  if (value === null || value === undefined) return "";
+    if (value === null || value === undefined) return "";
 
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
 
   function getToday() {
     const d = new Date();
@@ -1365,6 +1365,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       estado: estadoCalculado
     };
 
+    console.log("Nuevo Action Plan antes de validar:", nuevo);
+
     if (
       !nuevo.fecha ||
       !nuevo.businessUnit ||
@@ -1402,6 +1404,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         method = "PUT";
       }
 
+      console.log("URL guardado Action Plan:", url);
+      console.log("Método guardado Action Plan:", method);
+      console.log("Payload enviado Action Plan:", payload);
+
       const res = await fetch(url, {
         method,
         headers: {
@@ -1421,7 +1427,19 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
 
       if (!res.ok || json.ok === false) {
-        throw new Error(json.error || json.detalle || `HTTP ${res.status}`);
+        console.error("Respuesta error backend Action Plan:", {
+          status: res.status,
+          json,
+          text
+        });
+
+        throw new Error(
+          json.detalle ||
+          json.error ||
+          json.message ||
+          text ||
+          `HTTP ${res.status}`
+        );
       }
 
       if (modalEl) {
@@ -1434,7 +1452,11 @@ document.addEventListener("DOMContentLoaded", async function () {
       await cargarActionPlansDesdeBD();
     } catch (error) {
       console.error("Error guardando plan en BD:", error);
-      alert("No se pudo guardar el plan de acción en la base de datos.");
+
+      alert(
+        "No se pudo guardar el plan de acción en la base de datos.\n\n" +
+        "Detalle: " + (error.message || "Error desconocido")
+      );
     }
   }
 
