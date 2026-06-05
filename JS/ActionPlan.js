@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async function () {
  const hallazgoFechaCompromiso = document.getElementById("hallazgoFechaCompromiso");
  const hallazgoFechaCierre = document.getElementById("hallazgoFechaCierre");
  const hallazgoEstado = document.getElementById("hallazgoEstado");
+ const hallazgoComentario = document.getElementById("hallazgoComentarios");
  const modalEl = document.getElementById("modalHallazgo");
  const modal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
  let responsablesActionPlan = [];
@@ -209,45 +210,47 @@ document.addEventListener("DOMContentLoaded", async function () {
    const fechaCierre = convertirFecha(item.fechaCierre || item.fechacierre || item.fecha_cierre || "");
    const estadoCalculado = calcularEstadoAutomatico(fechaCompromiso, fechaCierre, item.estado || "ABIERTO");
    return {
-     id: item.id || item.idActionPlan || item.id_action_plan || item.idaccion || "",
-     fecha: convertirFecha(item.fecha),
-     creadoPor: item.creadoPor || item.creado_por || item.createdBy || item.usuarioCreador || "Usuario",
-     creadoPorId: item.creadoPorId || item.idUsuario || item.id_usuario || "",
-     idBusinessUnit: item.idBusinessUnit || item.id_business_unit || item.idbusinessunit || "",
-     businessUnit: item.businessUnit || item.business_unit || item.BusinessUnit || "",
-     idProductionLine: item.idProductionLine || item.id_production_line || item.idproductionline || "",
-     productionLine: item.productionLine || item.production_line || item.ProductionLine || "",
-     idModulo: item.idModulo || item.id_modulo || item.idmodulo || "",
-     modulo: item.modulo || MODULES_BY_ID[String(item.idModulo || item.id_modulo || item.idmodulo || "")] || item.kpi || "",
-     idPregunta: item.idPregunta || item.id_pregunta || item.idpregunta || "",
-     pregunta: item.pregunta || item.descripcion || "",
-     accionRequerida: item.accionRequerida || item.accion_requerida || item.accion || "",
-     responsable: item.responsable || "",
-     fechaCompromiso,
-     fechaCierre,
-     estado: estadoCalculado
+    id: item.id || item.idActionPlan || item.id_action_plan || item.idaccion || "",
+    fecha: convertirFecha(item.fecha),
+    creadoPor: item.creadoPor || item.creado_por || item.createdBy || item.usuarioCreador || "Usuario",
+    creadoPorId: item.creadoPorId || item.idUsuario || item.id_usuario || "",
+    idBusinessUnit: item.idBusinessUnit || item.id_business_unit || item.idbusinessunit || "",
+    businessUnit: item.businessUnit || item.business_unit || item.BusinessUnit || "",
+    idProductionLine: item.idProductionLine || item.id_production_line || item.idproductionline || "",
+    productionLine: item.productionLine || item.production_line || item.ProductionLine || "",
+    idModulo: item.idModulo || item.id_modulo || item.idmodulo || "",
+    modulo: item.modulo || MODULES_BY_ID[String(item.idModulo || item.id_modulo || item.idmodulo || "")] || item.kpi || "",
+    idPregunta: item.idPregunta || item.id_pregunta || item.idpregunta || "",
+    pregunta: item.pregunta || item.descripcion || "",
+    accionRequerida: item.accionRequerida || item.accion_requerida || item.accion || "",
+    responsable: item.responsable || "",
+    comentarios: item.comentarios || item.comentario || item.comments || "",
+    fechaCompromiso,
+    fechaCierre,
+    estado: estadoCalculado
    };
  }
  function convertirActionPlanParaBackend(item) {
    return {
-     fecha: item.fecha || null,
-     creadoPor: item.creadoPor || getUsuarioActualActionPlan(),
-     creadoPorId: item.creadoPorId || getUsuarioActualIdActionPlan(),
-     idBusinessUnit: item.idBusinessUnit || null,
-     businessUnit: item.businessUnit || "",
-     idProductionLine: item.idProductionLine || null,
-     productionLine: item.productionLine || "",
-     idModulo: item.idModulo || "",
-     modulo: item.modulo || "",
-     idPregunta: item.idPregunta || "",
-     pregunta: item.pregunta || "",
-     accionRequerida: item.accionRequerida || "",
-     responsable: item.responsable || "",
-     fechaCompromiso: item.fechaCompromiso || null,
-     fechaCierre: item.fechaCierre || null,
-     estado: item.estado || "ABIERTO"
+    fecha: item.fecha || null,
+    creadoPor: item.creadoPor || getUsuarioActualActionPlan(),
+    creadoPorId: item.creadoPorId || getUsuarioActualIdActionPlan(),
+    idBusinessUnit: item.idBusinessUnit || null,
+    businessUnit: item.businessUnit || "",
+    idProductionLine: item.idProductionLine || null,
+    productionLine: item.productionLine || "",
+    idModulo: item.idModulo || "",
+    modulo: item.modulo || "",
+    idPregunta: item.idPregunta || "",
+    pregunta: item.pregunta || "",
+    accionRequerida: item.accionRequerida || "",
+    responsable: item.responsable || "",
+    comentarios: item.comentarios || "",
+    fechaCompromiso: item.fechaCompromiso || null,
+    fechaCierre: item.fechaCierre || null,
+    estado: item.estado || "ABIERTO"
    };
- }
+}
  // ======================================================
  // CATÁLOGOS
  // ======================================================
@@ -556,6 +559,7 @@ document.addEventListener("DOMContentLoaded", async function () {
    if (hallazgoFechaCompromiso) hallazgoFechaCompromiso.value = "";
    if (hallazgoFechaCierre) hallazgoFechaCierre.value = "";
    if (hallazgoEstado) hallazgoEstado.value = "ABIERTO";
+   if (hallazgoComentario) hallazgoComentario.value = "";
    llenarListaResponsables();
  }
  async function guardarHallazgo() {
@@ -590,6 +594,7 @@ document.addEventListener("DOMContentLoaded", async function () {
      pregunta: textoPreguntaSeleccionada,
      accionRequerida: hallazgoAccion ? hallazgoAccion.value.trim() : "",
      responsable: hallazgoResponsable ? hallazgoResponsable.value.trim() : "",
+     comentarios: hallazgoComentario ? hallazgoComentario.value.trim() : "",
      fechaCompromiso: fechaCompromisoValue,
      fechaCierre: fechaCierreReal,
      estado: estadoCalculado
@@ -643,6 +648,7 @@ document.addEventListener("DOMContentLoaded", async function () {
    if (hallazgoFechaCompromiso) hallazgoFechaCompromiso.value = item.fechaCompromiso || "";
    if (hallazgoFechaCierre) hallazgoFechaCierre.value = item.fechaCierre || "";
    if (hallazgoEstado) hallazgoEstado.value = item.estado || "ABIERTO";
+   if (hallazgoComentario) hallazgoComentario.value = item.comentarios || "";
    llenarListaResponsables();
    if (modal) modal.show();
  };
@@ -728,5 +734,4 @@ document.addEventListener("DOMContentLoaded", async function () {
  limpiarFormulario();
  inicializarStatusCards();
  await cargarActionPlansDesdeBD();
-// CORRECCIÓN SINTÁCTICA: Faltaba cerrar el listener principal correctamente con "});"
 });
