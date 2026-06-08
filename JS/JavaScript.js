@@ -1,6 +1,6 @@
-// ======================================================// ======================================================
 // En Azure debe quedarse vacío para que use el mismo dominio.
 // NO usar http://localhost:3000 en Azure.
+// ======================================================
 const API_BASE = "";
 
 // ======================================================
@@ -174,7 +174,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // ======================================================
   // SUBMENÚ REPORTS EN SIDEBAR
   // ======================================================
-  const btnReportsToggle = document.getElementById("btnReportsToggle");
+
+// ======================================================
+// CONFIGById("btnReportsToggle");// CONFIG API
   const reportsSubmenu = document.getElementById("reportsSubmenu");
   const reportsMenuGroup = document.querySelector(".reports-menu-group");
 
@@ -314,6 +316,22 @@ function getCurrentUserSeguro() {
 }
 
 // ======================================================
+// LIMPIAR REVIEW EN PROGRESO
+// Esta función borra cualquier progreso temporal guardado.
+// ======================================================
+function limpiarReviewEnProgresoDesdeJavaScript() {
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith("reviewEnProgresoActual"))
+      .forEach(k => localStorage.removeItem(k));
+  } catch (error) {
+    console.warn("No se pudo limpiar review en progreso:", error);
+  }
+}
+
+window.limpiarReviewEnProgresoDesdeJavaScript = limpiarReviewEnProgresoDesdeJavaScript;
+
+// ======================================================
 // CARGAR BUSINESS UNITS / PRODUCTION LINES / REVIEWERS
 // DESDE AZURE SQL
 // ======================================================
@@ -382,8 +400,20 @@ async function cargarCatalogosAuditoria() {
     .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")))
     .forEach(function (bu) {
       const option = document.createElement("option");
-      option.value = bu.idbusinessunit;
-      option.textContent = bu.nombre;
+      option.value =
+        bu.idbusinessunit ||
+        bu.idBusinessUnit ||
+        bu.id_business_unit ||
+        bu.id ||
+        "";
+
+      option.textContent =
+        bu.nombre ||
+        bu.name ||
+        bu.NombreBusinessUnit ||
+        bu.businessUnit ||
+        "";
+
       buSelect.appendChild(option);
     });
 
@@ -405,14 +435,33 @@ async function cargarCatalogosAuditoria() {
 
     const lines = productionLines
       .filter(function (pl) {
-        return String(pl.idbusinessunit) === String(businessUnitId);
+        const idBU =
+          pl.idbusinessunit ||
+          pl.idBusinessUnit ||
+          pl.id_business_unit ||
+          pl.idbu ||
+          "";
+
+        return String(idBU) === String(businessUnitId);
       })
       .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")));
 
     lines.forEach(function (pl) {
       const option = document.createElement("option");
-      option.value = pl.idproductionline;
-      option.textContent = pl.nombre;
+      option.value =
+        pl.idproductionline ||
+        pl.idProductionLine ||
+        pl.id_production_line ||
+        pl.id ||
+        "";
+
+      option.textContent =
+        pl.nombre ||
+        pl.name ||
+        pl.NombreProductionLine ||
+        pl.productionLine ||
+        "";
+
       lineSelect.appendChild(option);
     });
 
@@ -464,6 +513,69 @@ async function cargarCatalogosAuditoria() {
 }
 
 // ======================================================
+// GUARDAR DATOS INICIALES DE AUDITORÍA
+// Guarda formato para review real y para progreso.
+// ======================================================
+function guardarDatosAuditoriaActual() {
+  const bu = document.getElementById("businessUnit");
+  const line = document.getElementById("productionLine");
+  const reviewer = document.getElementById("reviewerSelect");
+  const date = document.getElementById("assessmentDate");
+
+  if (!bu || !line || !reviewer || !date) {
+    console.warn("No se encontraron campos de auditoría para guardar.");
+    return null;
+  }
+
+  const reviewerOption = reviewer.options[reviewer.selectedIndex];
+  const buOption = bu.options[bu.selectedIndex];
+  const lineOption = line.options[line.selectedIndex];
+
+  const nombreUsuario = reviewerOption ? reviewerOption.textContent.trim() : "";
+  const nombreBusinessUnit = buOption ? buOption.textContent.trim() : "";
+  const nombreProductionLine = lineOption ? lineOption.textContent.trim() : "";
+
+  const datosIniciales = {
+    // Formato que ya usa tu backend / guardado real
+    IdUsuario: reviewer.value,
+    IdBusinessUnit: bu.value,
+    IdProductionLine: line.value,
+
+    NombreUsuario: nombreUsuario,
+    NombreBusinessUnit: nombreBusinessUnit,
+    NombreProductionLine: nombreProductionLine,
+
+    FechaReview: date.value,
+
+    // Formato normalizado para progreso
+    reviewer: reviewer.value,
+    reviewerTexto: nombreUsuario,
+
+    businessUnit: bu.value,
+    businessUnitTexto: nombreBusinessUnit,
+
+    productionLine: line.value,
+    productionLineTexto: nombreProductionLine,
+
+    assessmentDate: date.value,
+
+    guardadoEn: new Date().toISOString()
+  };
+
+  // Este lo usa tu guardado real de review
+  localStorage.setItem("reviewInfo", JSON.stringify(datosIniciales));
+
+  // Este lo usa progresopreguntas.js para poder mostrar BU/PL al volver a Auditoria.html
+  localStorage.setItem("modelLineAuditData", JSON.stringify(datosIniciales));
+
+  console.log("Datos iniciales de auditoría guardados:", datosIniciales);
+
+  return datosIniciales;
+}
+
+window.guardarDatosAuditoriaActual = guardarDatosAuditoriaActual;
+
+// ======================================================
 // DATOS INICIALES DEL REVIEW
 // ======================================================
 document.addEventListener("DOMContentLoaded", async function () {
@@ -497,8 +609,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (
         !value ||
         value === "" ||
-        value.includes("Select") ||
-        value.includes("Open")
+        String(value).includes("Select") ||
+        String(value).includes("Open")
       ) {
         field.classList.add("is-invalid");
         valid = false;
@@ -514,24 +626,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     if (!valid) return;
 
-    const reviewerOption = reviewer.options[reviewer.selectedIndex];
-    const buOption = bu.options[bu.selectedIndex];
-    const lineOption = line.options[line.selectedIndex];
-
-    const datosIniciales = {
-      IdUsuario: reviewer.value,
-      IdBusinessUnit: bu.value,
-      IdProductionLine: line.value,
-
-      NombreUsuario: reviewerOption ? reviewerOption.textContent.trim() : "",
-      NombreBusinessUnit: buOption ? buOption.textContent.trim() : "",
-      NombreProductionLine: lineOption ? lineOption.textContent.trim() : "",
-
-      FechaReview: date.value
-    };
-
     localStorage.removeItem("modulos");
-    localStorage.setItem("reviewInfo", JSON.stringify(datosIniciales));
+
+    guardarDatosAuditoriaActual();
 
     window.location.href = "Manufacturing_Evaluation.html";
   });
@@ -704,7 +801,7 @@ window.cerrarMensajeExitoYRedirigir = cerrarMensajeExitoYRedirigir;
 // ======================================================
 // GUARDAR REVIEW COMPLETO
 // ======================================================
-  async function guardarReview() {
+async function guardarReview() {
   const info = JSON.parse(localStorage.getItem("reviewInfo"));
   const modulos = JSON.parse(localStorage.getItem("modulos"));
 
@@ -767,6 +864,9 @@ window.cerrarMensajeExitoYRedirigir = cerrarMensajeExitoYRedirigir;
     if (res.ok && json.ok) {
       localStorage.removeItem("modulos");
       localStorage.removeItem("reviewInfo");
+      localStorage.removeItem("modelLineAuditData");
+
+      limpiarReviewEnProgresoDesdeJavaScript();
 
       const mensaje = document.getElementById("mensajeExito");
 
@@ -1310,4 +1410,3 @@ async function inicializarCuestionarioDinamico() {
 document.addEventListener("DOMContentLoaded", function () {
   inicializarCuestionarioDinamico();
 });
-
