@@ -2593,3 +2593,149 @@ img {
   min-width: 330px;
 }
 
+/* ======================================================
+   FIX FINAL TABLA ACTION PLAN
+   Alinea columnas usando colgroup
+====================================================== */
+
+.action-plan-table-wrap {
+  width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  background: #ffffff !important;
+  border: 2px solid #0b5f99 !important;
+}
+
+.action-plan-table {
+  width: 2500px !important;
+  min-width: 2500px !important;
+  max-width: none !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  margin-bottom: 0 !important;
+}
+
+/* Columnas desde colgroup */
+.action-plan-table col.col-fecha {
+  width: 110px !important;
+}
+
+.action-plan-table col.col-creador {
+  width: 180px !important;
+}
+
+.action-plan-table col.col-bu {
+  width: 145px !important;
+}
+
+.action-plan-table col.col-pl {
+  width: 210px !important;
+}
+
+.action-plan-table col.col-modulo {
+  width: 190px !important;
+}
+
+.action-plan-table col.col-pregunta {
+  width: 570px !important;
+}
+
+.action-plan-table col.col-accion {
+  width: 330px !important;
+}
+
+.action-plan-table col.col-comentarios {
+  width: 330px !important;
+}
+
+.action-plan-table col.col-responsable {
+  width: 270px !important;
+}
+
+.action-plan-table col.col-compromiso {
+  width: 165px !important;
+}
+
+.action-plan-table col.col-cierre {
+  width: 145px !important;
+}
+
+.action-plan-table col.col-estado {
+  width: 125px !important;
+}
+
+.action-plan-table col.col-botones {
+  width: 130px !important;
+}
+
+/* Encabezados y celdas */
+.action-plan-table th,
+.action-plan-table td {
+  box-sizing: border-box !important;
+  vertical-align: top !important;
+  padding: 12px 10px !important;
+  font-size: 0.84rem !important;
+  border: 1px solid #d8e0ea !important;
+  overflow: hidden !important;
+}
+
+.action-plan-table thead th {
+  background: #9fc5e8 !important;
+  color: #0f172a !important;
+  font-weight: 900 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  line-height: 1.2 !important;
+}
+
+/* Texto largo */
+.text-wrap-cell,
+.pregunta-cell,
+.accion-cell,
+.comentarios-cell,
+.responsable-cell {
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  line-height: 1.45 !important;
+}
+
+/* Evitar que fechas y estado se rompan */
+.fecha-cell,
+.fecha-compromiso-cell,
+.fecha-cierre-cell,
+.estado-cell,
+.acciones-cell {
+  white-space: nowrap !important;
+}
+
+/* Botones */
+.action-row-buttons {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+}
+
+.action-row-buttons button {
+  flex: 0 0 auto !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 2px 4px !important;
+}
+
+.estado-badge {
+  white-space: nowrap !important;
+  font-weight: 900 !important;
+}
+
+/* Que el body no fuerce una tabla rara */
+.action-plan-table tbody tr {
+  height: auto !important;
+}
+
+.action-plan-table tbody td {
+  background: #ffffff !important;
+  color: #111827 !important;
+}
