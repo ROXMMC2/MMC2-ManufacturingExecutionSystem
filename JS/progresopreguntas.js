@@ -1,10 +1,48 @@
+// ======================================================
+// PROGRESO DE PREGUNTAS
+// Archivo: progresopreguntas.js
+//
+// Este archivo va en los 6 HTMLs de preguntas.
+// Guarda el progreso en localStorage y manda a Auditoría.
+// También restaura respuestas cuando regresas al módulo.
+// Guarda BU y PL para mostrarlas en los campos de Auditoria.html.
+// NO toca Azure SQL.
+// ======================================================
 
 const STORAGE_KEY_REVIEW_EN_PROGRESO = "reviewEnProgresoActual";
 
-// IMPORTANTE:
-// Si tus módulos están en la misma carpeta que Auditoria.html, usa "./Auditoria.html"
-// Si tus módulos están en una subcarpeta, usa "../Auditoria.html"
+// Si tus módulos están en la misma carpeta que Auditoria.html, deja esto.
+// Si están en una subcarpeta, cambia a "../Auditoria.html"
 const URL_AUDITORIA = "./Auditoria.html";
+
+// ======================================================
+// CATÁLOGOS LOCALES PARA CONVERTIR ID A TEXTO
+// ======================================================
+const BUSINESS_UNITS_MAP = {
+  "1": "LCS",
+  "2": "LVP",
+  "3": "IDB",
+  "4": "LVMCC"
+};
+
+const PRODUCTION_LINES_MAP = {
+  "1": "Oxy",
+  "2": "Cell 2",
+  "3": "Cell 3 (Vandelay)",
+  "4": "PEFT",
+  "5": "AMAT",
+  "6": "LVP",
+  "7": "UPS",
+  "8": "UPS On-Machine",
+  "9": "Carrier",
+  "10": "Cabinets",
+  "11": "Frames",
+  "12": "Finals",
+  "13": "Units",
+  "14": "Sub Assy",
+  "15": "Fabrication",
+  "16": "Painting"
+};
 
 // ======================================================
 // USUARIO
@@ -47,6 +85,10 @@ function getStorageKeyReviewEnProgreso() {
 // ======================================================
 // HELPERS GENERALES
 // ======================================================
+function limpiarTextoProgreso(value) {
+  return String(value || "").trim();
+}
+
 function obtenerInfoPaginaActual() {
   return {
     pathname: window.location.pathname,
@@ -63,7 +105,7 @@ function obtenerParametroURL(nombre) {
 
 function obtenerValorElementoProgreso(id) {
   const el = document.getElementById(id);
-  return el ? String(el.value || "").trim() : "";
+  return el ? limpiarTextoProgreso(el.value) : "";
 }
 
 function obtenerTextoSelectProgreso(id) {
@@ -75,7 +117,7 @@ function obtenerTextoSelectProgreso(id) {
 
   if (!option) return "";
 
-  const texto = String(option.textContent || "").trim();
+  const texto = limpiarTextoProgreso(option.textContent);
 
   if (
     texto.toLowerCase().includes("select") ||
@@ -87,11 +129,110 @@ function obtenerTextoSelectProgreso(id) {
   return texto;
 }
 
+function obtenerTextoBU(idOrText) {
+  const value = limpiarTextoProgreso(idOrText);
+  if (!value) return "";
+  return BUSINESS_UNITS_MAP[value] || value;
+}
+
+function obtenerTextoPL(idOrText) {
+  const value = limpiarTextoProgreso(idOrText);
+  if (!value) return "";
+  return PRODUCTION_LINES_MAP[value] || value;
+}
+
 // ======================================================
-// LEER DATOS DE AUDITORÍA GUARDADOS
+// BUSCAR DATOS DE AUDITORÍA EN LOCALSTORAGE
 // ======================================================
+function extraerDatosAuditoriaDesdeObjeto(data) {
+  if (!data || typeof data !== "object") return null;
+
+  const businessUnit =
+    data.businessUnit ||
+    data.idBusinessUnit ||
+    data.id_business_unit ||
+    data.businessUnitId ||
+    data.bu ||
+    data.buId ||
+    data.selectedBU ||
+    data.selectedBusinessUnit ||
+    "";
+
+  const businessUnitTexto =
+    data.businessUnitTexto ||
+    data.businessUnitName ||
+    data.businessUnitNombre ||
+    data.businessUnitLabel ||
+    data.business_unit ||
+    data.buTexto ||
+    data.buName ||
+    data.buLabel ||
+    data.buNombre ||
+    "";
+
+  const productionLine =
+    data.productionLine ||
+    data.idProductionLine ||
+    data.id_production_line ||
+    data.productionLineId ||
+    data.pl ||
+    data.plId ||
+    data.selectedPL ||
+    data.selectedProductionLine ||
+    "";
+
+  const productionLineTexto =
+    data.productionLineTexto ||
+    data.productionLineName ||
+    data.productionLineNombre ||
+    data.productionLineLabel ||
+    data.production_line ||
+    data.plTexto ||
+    data.plName ||
+    data.plLabel ||
+    data.plNombre ||
+    "";
+
+  const reviewer =
+    data.reviewer ||
+    data.reviewerName ||
+    data.reviewerTexto ||
+    data.reviewerSelect ||
+    data.reviewerNombre ||
+    "";
+
+  const assessmentDate =
+    data.assessmentDate ||
+    data.fecha ||
+    data.fechaAuditoria ||
+    data.date ||
+    data.assessment_date ||
+    "";
+
+  if (
+    businessUnit ||
+    businessUnitTexto ||
+    productionLine ||
+    productionLineTexto ||
+    reviewer ||
+    assessmentDate
+  ) {
+    return {
+      businessUnit: limpiarTextoProgreso(businessUnit),
+      businessUnitTexto: limpiarTextoProgreso(businessUnitTexto),
+      productionLine: limpiarTextoProgreso(productionLine),
+      productionLineTexto: limpiarTextoProgreso(productionLineTexto),
+      reviewer: limpiarTextoProgreso(reviewer),
+      assessmentDate: limpiarTextoProgreso(assessmentDate)
+    };
+  }
+
+  return null;
+}
+
 function obtenerDatosAuditoriaGuardadosProgreso() {
   try {
+    // 1. Primero intenta con llaves conocidas
     const posiblesKeys = [
       "auditData",
       "auditoriaData",
@@ -100,79 +241,42 @@ function obtenerDatosAuditoriaGuardadosProgreso() {
       "datosAuditoria",
       "modelLineAuditData",
       "auditInfo",
-      "reviewInfo"
+      "reviewInfo",
+      "assessmentData",
+      "modelLineAssessment",
+      "datosEvaluacion"
     ];
 
     for (const key of posiblesKeys) {
       const raw = localStorage.getItem(key);
-
       if (!raw) continue;
 
-      let data = null;
-
       try {
-        data = JSON.parse(raw);
+        const data = JSON.parse(raw);
+        const datos = extraerDatosAuditoriaDesdeObjeto(data);
+
+        if (datos) return datos;
       } catch {
         continue;
       }
+    }
 
-      if (!data || typeof data !== "object") continue;
+    // 2. Si no encuentra nada, busca en TODO localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
 
-      return {
-        businessUnit:
-          data.businessUnit ||
-          data.idBusinessUnit ||
-          data.id_business_unit ||
-          data.bu ||
-          data.business_unit ||
-          "",
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
 
-        businessUnitTexto:
-          data.businessUnitTexto ||
-          data.businessUnitName ||
-          data.businessUnitNombre ||
-          data.businessUnitLabel ||
-          data.business_unit ||
-          data.buTexto ||
-          data.buName ||
-          data.bu ||
-          data.businessUnit ||
-          "",
+      try {
+        const data = JSON.parse(raw);
+        const datos = extraerDatosAuditoriaDesdeObjeto(data);
 
-        productionLine:
-          data.productionLine ||
-          data.idProductionLine ||
-          data.id_production_line ||
-          data.pl ||
-          data.production_line ||
-          "",
-
-        productionLineTexto:
-          data.productionLineTexto ||
-          data.productionLineName ||
-          data.productionLineNombre ||
-          data.productionLineLabel ||
-          data.production_line ||
-          data.plTexto ||
-          data.plName ||
-          data.pl ||
-          data.productionLine ||
-          "",
-
-        reviewer:
-          data.reviewer ||
-          data.reviewerName ||
-          data.reviewerTexto ||
-          data.reviewerSelect ||
-          "",
-
-        assessmentDate:
-          data.assessmentDate ||
-          data.fecha ||
-          data.fechaAuditoria ||
-          data.date ||
-          ""
-      };
+        if (datos) return datos;
+      } catch {
+        continue;
+      }
     }
 
     return {
@@ -207,37 +311,31 @@ function obtenerBusinessUnitYProductionLineProgreso() {
   const buURL =
     obtenerParametroURL("bu") ||
     obtenerParametroURL("businessUnit") ||
-    obtenerParametroURL("idBusinessUnit");
+    obtenerParametroURL("idBusinessUnit") ||
+    obtenerParametroURL("businessUnitId");
 
   const buTextoURL =
     obtenerParametroURL("buTexto") ||
     obtenerParametroURL("businessUnitTexto") ||
-    obtenerParametroURL("businessUnitName");
+    obtenerParametroURL("businessUnitName") ||
+    obtenerParametroURL("buName");
 
   const plURL =
     obtenerParametroURL("pl") ||
     obtenerParametroURL("productionLine") ||
-    obtenerParametroURL("idProductionLine");
+    obtenerParametroURL("idProductionLine") ||
+    obtenerParametroURL("productionLineId");
 
   const plTextoURL =
     obtenerParametroURL("plTexto") ||
     obtenerParametroURL("productionLineTexto") ||
-    obtenerParametroURL("productionLineName");
+    obtenerParametroURL("productionLineName") ||
+    obtenerParametroURL("plName");
 
   const businessUnit =
     obtenerValorElementoProgreso("businessUnit") ||
     obtenerValorElementoProgreso("selectBusinessUnit") ||
     obtenerValorElementoProgreso("hallazgoBusinessUnit") ||
-    datosStorage.businessUnit ||
-    buURL ||
-    "";
-
-  const businessUnitTexto =
-    obtenerTextoSelectProgreso("businessUnit") ||
-    obtenerTextoSelectProgreso("selectBusinessUnit") ||
-    obtenerTextoSelectProgreso("hallazgoBusinessUnit") ||
-    datosStorage.businessUnitTexto ||
-    buTextoURL ||
     datosStorage.businessUnit ||
     buURL ||
     "";
@@ -250,23 +348,31 @@ function obtenerBusinessUnitYProductionLineProgreso() {
     plURL ||
     "";
 
+  const businessUnitTexto =
+    obtenerTextoSelectProgreso("businessUnit") ||
+    obtenerTextoSelectProgreso("selectBusinessUnit") ||
+    obtenerTextoSelectProgreso("hallazgoBusinessUnit") ||
+    datosStorage.businessUnitTexto ||
+    buTextoURL ||
+    obtenerTextoBU(businessUnit) ||
+    "";
+
   const productionLineTexto =
     obtenerTextoSelectProgreso("productionLine") ||
     obtenerTextoSelectProgreso("selectProductionLine") ||
     obtenerTextoSelectProgreso("hallazgoProductionLine") ||
     datosStorage.productionLineTexto ||
     plTextoURL ||
-    datosStorage.productionLine ||
-    plURL ||
+    obtenerTextoPL(productionLine) ||
     "";
 
   return {
-    businessUnit: String(businessUnit || "").trim(),
-    businessUnitTexto: String(businessUnitTexto || "").trim(),
-    productionLine: String(productionLine || "").trim(),
-    productionLineTexto: String(productionLineTexto || "").trim(),
-    reviewer: String(datosStorage.reviewer || "").trim(),
-    assessmentDate: String(datosStorage.assessmentDate || "").trim()
+    businessUnit: limpiarTextoProgreso(businessUnit),
+    businessUnitTexto: limpiarTextoProgreso(businessUnitTexto),
+    productionLine: limpiarTextoProgreso(productionLine),
+    productionLineTexto: limpiarTextoProgreso(productionLineTexto),
+    reviewer: limpiarTextoProgreso(datosStorage.reviewer),
+    assessmentDate: limpiarTextoProgreso(datosStorage.assessmentDate)
   };
 }
 
@@ -406,13 +512,13 @@ function guardarProgresoPreguntas() {
     progreso.actualizadoEn = new Date().toISOString();
     progreso.ultimaPagina = paginaActual;
 
-    // Guardar BU / PL para mostrarlas en Auditoria.html
+    // Guardar BU / PL para mostrarlas arriba en Auditoria.html
     progreso.businessUnit = datosAuditoria.businessUnit;
     progreso.businessUnitTexto = datosAuditoria.businessUnitTexto;
     progreso.productionLine = datosAuditoria.productionLine;
     progreso.productionLineTexto = datosAuditoria.productionLineTexto;
 
-    // Extra opcional
+    // Extra
     progreso.reviewer = datosAuditoria.reviewer;
     progreso.assessmentDate = datosAuditoria.assessmentDate;
 
@@ -423,10 +529,15 @@ function guardarProgresoPreguntas() {
       businessUnitTexto: datosAuditoria.businessUnitTexto,
       productionLine: datosAuditoria.productionLine,
       productionLineTexto: datosAuditoria.productionLineTexto,
+      reviewer: datosAuditoria.reviewer,
+      assessmentDate: datosAuditoria.assessmentDate,
       guardadoEn: new Date().toISOString()
     };
 
     localStorage.setItem(getStorageKeyReviewEnProgreso(), JSON.stringify(progreso));
+
+    // Debug útil para verificar en consola
+    console.log("Progreso guardado:", progreso);
 
     // Después de guardar, mandar al apartado de auditoría
     window.location.href = URL_AUDITORIA;

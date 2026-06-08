@@ -1,39 +1,7 @@
-// ======================================================
-// AUDITORÍA - CONTINUAR PROGRESO
-// Archivo: auditoriaProgreso.js
-//
-// Este archivo va SOLO en Auditoria.html.
-// Si existe una review en progreso:
-// - Muestra BU y PL auditadas.
-// - Muestra botón "Continuar progreso".
-// - Deshabilita "Empezar evaluación".
-// - Bloquea los campos principales para evitar iniciar otra.
-// NO toca Azure SQL.
-// ======================================================
+
 
 const STORAGE_KEY_REVIEW_EN_PROGRESO_AUDITORIA = "reviewEnProgresoActual";
 
-// ======================================================
-// HELPERS
-// ======================================================
-function escapeHTMLAuditoriaProgreso(value) {
-  if (value === null || value === undefined) return "";
-
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function normalizarTextoAuditoriaProgreso(value) {
-  return String(value || "").trim();
-}
-
-// ======================================================
-// USUARIO ACTUAL
-// ======================================================
 function getUsuarioSesionAuditoriaProgreso() {
   try {
     return (
@@ -75,7 +43,6 @@ function getStorageKeyReviewEnProgresoAuditoria() {
 // ======================================================
 function obtenerReviewEnProgresoAuditoria() {
   try {
-    // 1. Primero busca con el usuario actual
     const keyUsuarioActual = getStorageKeyReviewEnProgresoAuditoria();
     const rawUsuarioActual = localStorage.getItem(keyUsuarioActual);
 
@@ -92,7 +59,6 @@ function obtenerReviewEnProgresoAuditoria() {
       }
     }
 
-    // 2. Si no lo encuentra, busca cualquier progreso guardado
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
 
@@ -131,70 +97,127 @@ function obtenerReviewEnProgresoAuditoria() {
 }
 
 // ======================================================
-// EXTRAER DATOS DE BU / PL
+// OBTENER PARÁMETROS DESDE URL GUARDADA
 // ======================================================
-function obtenerDatosBUyPLDesdeProgreso(progreso) {
+function obtenerParametroDesdeUrlGuardada(progreso, nombre) {
+  try {
+    const search = progreso?.ultimaPagina?.search || "";
+    const params = new URLSearchParams(search);
+    return params.get(nombre) || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+// ======================================================
+// EXTRAER BU / PL / REVIEWER / DATE DEL PROGRESO
+// ======================================================
+function obtenerDatosAuditoriaDesdeProgreso(progreso) {
   if (!progreso) {
     return {
       businessUnit: "",
       businessUnitTexto: "",
       productionLine: "",
-      productionLineTexto: ""
+      productionLineTexto: "",
+      reviewer: "",
+      assessmentDate: ""
     };
   }
 
-  const businessUnit =
-    progreso.businessUnit ||
-    progreso.idBusinessUnit ||
-    progreso.id_business_unit ||
-    progreso.bu ||
-    "";
+  const buUrl =
+    obtenerParametroDesdeUrlGuardada(progreso, "bu") ||
+    obtenerParametroDesdeUrlGuardada(progreso, "businessUnit") ||
+    obtenerParametroDesdeUrlGuardada(progreso, "idBusinessUnit");
 
-  const businessUnitTexto =
-    progreso.businessUnitTexto ||
-    progreso.businessUnitName ||
-    progreso.businessUnitNombre ||
-    progreso.business_unit ||
-    progreso.buTexto ||
-    progreso.bu ||
-    progreso.businessUnit ||
-    "";
+  const buTextoUrl =
+    obtenerParametroDesdeUrlGuardada(progreso, "buTexto") ||
+    obtenerParametroDesdeUrlGuardada(progreso, "businessUnitTexto") ||
+    obtenerParametroDesdeUrlGuardada(progreso, "businessUnitName");
 
-  const productionLine =
-    progreso.productionLine ||
-    progreso.idProductionLine ||
-    progreso.id_production_line ||
-    progreso.pl ||
-    "";
+  const plUrl =
+    obtenerParametroDesdeUrlGuardada(progreso, "pl") ||
+    obtenerParametroDesdeUrlGuardada(progreso, "productionLine") ||
+    obtenerParametroDesdeUrlGuardada(progreso, "idProductionLine");
 
-  const productionLineTexto =
-    progreso.productionLineTexto ||
-    progreso.productionLineName ||
-    progreso.productionLineNombre ||
-    progreso.production_line ||
-    progreso.plTexto ||
-    progreso.pl ||
-    progreso.productionLine ||
-    "";
+  const plTextoUrl =
+    obtenerParametroDesdeUrlGuardada(progreso, "plTexto") ||
+    obtenerParametroDesdeUrlGuardada(progreso, "productionLineTexto") ||
+    obtenerParametroDesdeUrlGuardada(progreso, "productionLineName");
 
   return {
-    businessUnit: normalizarTextoAuditoriaProgreso(businessUnit),
-    businessUnitTexto: normalizarTextoAuditoriaProgreso(businessUnitTexto),
-    productionLine: normalizarTextoAuditoriaProgreso(productionLine),
-    productionLineTexto: normalizarTextoAuditoriaProgreso(productionLineTexto)
+    businessUnit: String(
+      progreso.businessUnit ||
+      progreso.idBusinessUnit ||
+      progreso.id_business_unit ||
+      progreso.bu ||
+      buUrl ||
+      ""
+    ).trim(),
+
+    businessUnitTexto: String(
+      progreso.businessUnitTexto ||
+      progreso.businessUnitName ||
+      progreso.businessUnitNombre ||
+      progreso.business_unit ||
+      progreso.buTexto ||
+      buTextoUrl ||
+      progreso.businessUnit ||
+      buUrl ||
+      ""
+    ).trim(),
+
+    productionLine: String(
+      progreso.productionLine ||
+      progreso.idProductionLine ||
+      progreso.id_production_line ||
+      progreso.pl ||
+      plUrl ||
+      ""
+    ).trim(),
+
+    productionLineTexto: String(
+      progreso.productionLineTexto ||
+      progreso.productionLineName ||
+      progreso.productionLineNombre ||
+      progreso.production_line ||
+      progreso.plTexto ||
+      plTextoUrl ||
+      progreso.productionLine ||
+      plUrl ||
+      ""
+    ).trim(),
+
+    reviewer: String(
+      progreso.reviewer ||
+      progreso.reviewerName ||
+      progreso.reviewerTexto ||
+      ""
+    ).trim(),
+
+    assessmentDate: String(
+      progreso.assessmentDate ||
+      progreso.fecha ||
+      progreso.fechaAuditoria ||
+      progreso.date ||
+      ""
+    ).trim()
   };
 }
 
 // ======================================================
-// SELECCIONAR VALOR EN SELECT
+// SELECCIONAR OPTION EN SELECT
+// Si no encuentra option, crea una opción temporal
 // ======================================================
-function seleccionarValorEnSelect(selectId, valor, texto) {
+function seleccionarValorEnSelectAuditoria(selectId, valor, texto) {
   const select = document.getElementById(selectId);
 
   if (!select) return;
 
-  const valorNormalizado = String(valor || "").trim().toLowerCase();
-  const textoNormalizado = String(texto || "").trim().toLowerCase();
+  const valorLimpio = String(valor || "").trim();
+  const textoLimpio = String(texto || "").trim();
+
+  const valorNormalizado = valorLimpio.toLowerCase();
+  const textoNormalizado = textoLimpio.toLowerCase();
 
   let encontrado = false;
 
@@ -202,24 +225,29 @@ function seleccionarValorEnSelect(selectId, valor, texto) {
     const optionValue = String(option.value || "").trim().toLowerCase();
     const optionText = String(option.textContent || "").trim().toLowerCase();
 
-    if (
-      valorNormalizado &&
-      optionValue === valorNormalizado
-    ) {
+    if (valorNormalizado && optionValue === valorNormalizado) {
       option.selected = true;
       encontrado = true;
       return;
     }
 
-    if (
-      textoNormalizado &&
-      optionText === textoNormalizado
-    ) {
+    if (textoNormalizado && optionText === textoNormalizado) {
       option.selected = true;
       encontrado = true;
       return;
     }
   });
+
+  // Si no encontró coincidencia, crea una opción temporal para mostrar el texto
+  if (!encontrado && (valorLimpio || textoLimpio)) {
+    const option = document.createElement("option");
+    option.value = valorLimpio || textoLimpio;
+    option.textContent = textoLimpio || valorLimpio;
+    option.selected = true;
+    option.setAttribute("data-progress-temp", "true");
+    select.appendChild(option);
+    encontrado = true;
+  }
 
   if (encontrado) {
     select.dispatchEvent(new Event("change", { bubbles: true }));
@@ -227,55 +255,77 @@ function seleccionarValorEnSelect(selectId, valor, texto) {
 }
 
 // ======================================================
-// BLOQUEAR FORMULARIO CUANDO HAY PROGRESO
+// LLENAR CAMPOS DE ARRIBA CON LA REVIEW EN PROGRESO
 // ======================================================
-function bloquearFormularioPorProgreso(progreso) {
-  const btnStart = document.getElementById("btnStart");
+function cargarCamposAuditoriaConProgreso(progreso) {
+  const datos = obtenerDatosAuditoriaDesdeProgreso(progreso);
+
   const businessUnitSelect = document.getElementById("businessUnit");
   const productionLineSelect = document.getElementById("productionLine");
   const reviewerSelect = document.getElementById("reviewerSelect");
-  const assessmentDate = document.getElementById("assessmentDate");
+  const assessmentDateInput = document.getElementById("assessmentDate");
 
-  const datos = obtenerDatosBUyPLDesdeProgreso(progreso);
+  // 1. Cargar Business Unit en el campo de arriba
+  seleccionarValorEnSelectAuditoria(
+    "businessUnit",
+    datos.businessUnit,
+    datos.businessUnitTexto
+  );
 
-  // Seleccionar BU/PL guardadas
-  seleccionarValorEnSelect("businessUnit", datos.businessUnit, datos.businessUnitTexto);
-
-  // Dar tiempo a que tu JS filtre/cargue Production Lines después de cambiar BU
+  // 2. Cargar Production Line en el campo de arriba
+  // Pequeño delay por si tu JS filtra PL después de seleccionar BU
   setTimeout(() => {
-    seleccionarValorEnSelect("productionLine", datos.productionLine, datos.productionLineTexto);
-  }, 150);
+    seleccionarValorEnSelectAuditoria(
+      "productionLine",
+      datos.productionLine,
+      datos.productionLineTexto
+    );
 
-  // Bloquear campos para que no empiecen otra auditoría encima
-  if (businessUnitSelect) businessUnitSelect.disabled = true;
-  if (productionLineSelect) productionLineSelect.disabled = true;
-  if (reviewerSelect) reviewerSelect.disabled = true;
-  if (assessmentDate) assessmentDate.disabled = true;
+    if (productionLineSelect) {
+      productionLineSelect.disabled = true;
+    }
+  }, 200);
 
-  // Deshabilitar Empezar evaluación
-  if (btnStart) {
-    btnStart.disabled = true;
-    btnStart.classList.add("disabled");
-    btnStart.title = "Ya existe una review en progreso. Debes continuar el progreso actual.";
-    btnStart.style.pointerEvents = "none";
-    btnStart.style.opacity = "0.65";
+  // 3. Cargar reviewer si existe
+  if (reviewerSelect && datos.reviewer) {
+    seleccionarValorEnSelectAuditoria("reviewerSelect", datos.reviewer, datos.reviewer);
   }
+
+  // 4. Cargar fecha si existe
+  if (assessmentDateInput && datos.assessmentDate) {
+    assessmentDateInput.value = datos.assessmentDate;
+  }
+
+  // 5. Deshabilitar campos
+  if (businessUnitSelect) businessUnitSelect.disabled = true;
+  if (reviewerSelect) reviewerSelect.disabled = true;
+  if (assessmentDateInput) assessmentDateInput.disabled = true;
 }
 
 // ======================================================
-// DESBLOQUEAR FORMULARIO SI NO HAY PROGRESO
+// BLOQUEAR BOTÓN EMPEZAR EVALUACIÓN
 // ======================================================
-function desbloquearFormularioSinProgreso() {
+function bloquearBotonEmpezarEvaluacion() {
+  const btnStart = document.getElementById("btnStart");
+
+  if (!btnStart) return;
+
+  btnStart.disabled = true;
+  btnStart.classList.add("disabled");
+  btnStart.title = "Ya existe una review en progreso. Debes continuar el progreso actual.";
+  btnStart.style.pointerEvents = "none";
+  btnStart.style.opacity = "0.65";
+}
+
+// ======================================================
+// DESBLOQUEAR SI NO HAY PROGRESO
+// ======================================================
+function desbloquearAuditoriaSinProgreso() {
   const btnStart = document.getElementById("btnStart");
   const businessUnitSelect = document.getElementById("businessUnit");
   const productionLineSelect = document.getElementById("productionLine");
   const reviewerSelect = document.getElementById("reviewerSelect");
-  const assessmentDate = document.getElementById("assessmentDate");
-
-  if (businessUnitSelect) businessUnitSelect.disabled = false;
-  if (productionLineSelect) productionLineSelect.disabled = false;
-  if (reviewerSelect) reviewerSelect.disabled = false;
-  if (assessmentDate) assessmentDate.disabled = false;
+  const assessmentDateInput = document.getElementById("assessmentDate");
 
   if (btnStart) {
     btnStart.disabled = false;
@@ -284,6 +334,11 @@ function desbloquearFormularioSinProgreso() {
     btnStart.style.pointerEvents = "";
     btnStart.style.opacity = "";
   }
+
+  if (businessUnitSelect) businessUnitSelect.disabled = false;
+  if (productionLineSelect) productionLineSelect.disabled = false;
+  if (reviewerSelect) reviewerSelect.disabled = false;
+  if (assessmentDateInput) assessmentDateInput.disabled = false;
 }
 
 // ======================================================
@@ -305,30 +360,7 @@ function continuarReviewEnProgresoAuditoria() {
 }
 
 // ======================================================
-// FORMATEAR FECHA
-// ======================================================
-function formatearFechaProgresoAuditoria(fechaIso) {
-  if (!fechaIso) return "";
-
-  try {
-    const fecha = new Date(fechaIso);
-
-    if (Number.isNaN(fecha.getTime())) return "";
-
-    return fecha.toLocaleString("es-MX", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  } catch (error) {
-    return "";
-  }
-}
-
-// ======================================================
-// RENDERIZAR BOTÓN E INFO
+// RENDERIZAR SOLO BOTÓN CONTINUAR PROGRESO
 // ======================================================
 function renderBotonContinuarProgresoAuditoria() {
   const contenedor = document.getElementById("contenedorReviewEnProgreso");
@@ -340,73 +372,31 @@ function renderBotonContinuarProgresoAuditoria() {
 
   const progreso = obtenerReviewEnProgresoAuditoria();
 
-  // Si no hay progreso, no mostramos nada y dejamos el formulario normal
   if (!progreso) {
     contenedor.innerHTML = "";
     contenedor.style.display = "none";
-    desbloquearFormularioSinProgreso();
+    desbloquearAuditoriaSinProgreso();
     return;
   }
 
-  bloquearFormularioPorProgreso(progreso);
+  // Cargar los datos arriba, en los campos BU/PL
+  cargarCamposAuditoriaConProgreso(progreso);
 
-  const datos = obtenerDatosBUyPLDesdeProgreso(progreso);
+  // Bloquear empezar evaluación
+  bloquearBotonEmpezarEvaluacion();
 
-  const businessUnitTexto =
-    datos.businessUnitTexto ||
-    datos.businessUnit ||
-    "No especificada";
-
-  const productionLineTexto =
-    datos.productionLineTexto ||
-    datos.productionLine ||
-    "No especificada";
-
-  const fechaUltimoGuardado = formatearFechaProgresoAuditoria(
-    progreso.actualizadoEn ||
-    progreso.fechaUltimoGuardado ||
-    progreso.guardadoEn ||
-    ""
-  );
-
+  // Mostrar solo el botón continuar
   contenedor.style.display = "block";
 
   contenedor.innerHTML = `
-    <div class="review-progress-inline">
-      <div class="review-progress-text">
-        <div class="review-progress-title">
-          <i class="fa-solid fa-clock-rotate-left"></i>
-          Review en progreso
-        </div>
-
-        <div class="review-progress-details">
-          <span>
-            <strong>BU:</strong>
-            ${escapeHTMLAuditoriaProgreso(businessUnitTexto)}
-          </span>
-
-          <span>
-            <strong>PL:</strong>
-            ${escapeHTMLAuditoriaProgreso(productionLineTexto)}
-          </span>
-
-          ${
-            fechaUltimoGuardado
-              ? `<span><strong>Guardado:</strong> ${escapeHTMLAuditoriaProgreso(fechaUltimoGuardado)}</span>`
-              : ""
-          }
-        </div>
-      </div>
-
-      <button
-        type="button"
-        id="btnContinuarReviewEnProgreso"
-        class="btn btn-outline-primary px-4"
-      >
-        <i class="fa-solid fa-arrow-right"></i>
-        Continuar progreso
-      </button>
-    </div>
+    <button
+      type="button"
+      id="btnContinuarReviewEnProgreso"
+      class="btn btn-outline-primary px-4"
+    >
+      <i class="fa-solid fa-arrow-right"></i>
+      Continuar progreso
+    </button>
   `;
 
   const btnContinuar = document.getElementById("btnContinuarReviewEnProgreso");
@@ -423,8 +413,8 @@ function renderBotonContinuarProgresoAuditoria() {
 // INICIO
 // ======================================================
 document.addEventListener("DOMContentLoaded", function () {
-  // Pequeño delay para que auth.js / JavaScript.js carguen usuario y selects
+  // Delay para que JavaScript.js/auth.js carguen selects y reviewer
   setTimeout(() => {
     renderBotonContinuarProgresoAuditoria();
-  }, 300);
+  }, 500);
 });
