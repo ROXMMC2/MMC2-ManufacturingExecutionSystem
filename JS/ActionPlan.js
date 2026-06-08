@@ -401,7 +401,7 @@ document.addEventListener("DOMContentLoaded", async function () {
  }
  async function cargarActionPlansDesdeBD() {
    try {
-     if (tablaBody) tablaBody.innerHTML = `<tr><td colspan="12" class="text-center text-muted py-4">Cargando planes de acción...</td></tr>`;
+     if (tablaBody) tablaBody.innerHTML = `<tr><td colspan="13" class="text-center text-muted py-4">Cargando planes de acción...</td></tr>`;
      const res = await fetch(`${API_ACTION_PLANS}?t=${Date.now()}`, { method: "GET", cache: "no-store", headers: { Accept: "application/json" } });
      if (!res.ok) throw new Error(`HTTP ${res.status}`);
      const data = await res.json();
@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded", async function () {
      renderTable();
    } catch (error) {
      console.error("Error cargando planes desde BD:", error);
-     if (tablaBody) tablaBody.innerHTML = `<tr><td colspan="12" class="text-center text-danger py-4">Error cargando planes de acción.</td></tr>`;
+     if (tablaBody) tablaBody.innerHTML = `<tr><td colspan="13" class="text-center text-danger py-4">Error cargando planes de acción.</td></tr>`;
    }
  }
  function cargarFiltroBusinessUnit() {
@@ -515,7 +515,7 @@ document.addEventListener("DOMContentLoaded", async function () {
    actualizarContadoresStatus();
    const items = filtrarItems(getItems());
    if (!items.length) {
-     tablaBody.innerHTML = `<tr><td colspan="12" class="text-center text-muted py-4">No hay planes de acción registrados.</td></tr>`;
+     tablaBody.innerHTML = `<tr><td colspan="13" class="text-center text-muted py-4">No hay planes de acción registrados.</td></tr>`;
      return;
    }
    tablaBody.innerHTML = items.map(item => {
@@ -530,7 +530,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 <td>${escapeHTML(item.modulo)}</td>
 <td class="text-wrap-cell">${escapeHTML(item.pregunta)}</td>
 <td class="text-wrap-cell">${escapeHTML(item.accionRequerida)}</td>
-<td class="text-wrap-cell">${escapeHTML(item.comentarios || "")}</td>
+<td class="text-wrap-cell comentarios-cell">${escapeHTML(item.comentarios || "")}</td>
 <td>${escapeHTML(item.responsable)}</td>
 <td>${escapeHTML(formatDate(item.fechaCompromiso))}</td>
 <td>${escapeHTML(formatDate(item.fechaCierre))}</td>

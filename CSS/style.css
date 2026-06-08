@@ -1534,8 +1534,9 @@ img {
 }
 
 .action-plan-table-wrap {
-  max-height: calc(100vh - 320px);
-  overflow: auto;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: #ffffff;
   border: 2px solid #0b5f99;
 }
@@ -1547,20 +1548,11 @@ img {
   table-layout: fixed;
 }
 
-.action-plan-table thead th {
-  text-align: left;
-  background: #9fc5e8;
-  color: #001f33;
-  border: 1px solid #0b5f99;
-  font-weight: 900;
-  white-space: nowrap;
-  padding: 6px 8px;
-}
-
-.action-plan-table tbody td {
+.action-plan-table th,
+.action-plan-table td {
   vertical-align: top;
-  border: 1px solid #e5e7eb;
-  padding: 10px;
+  padding: 12px 10px;
+  font-size: 0.85rem;
 }
 
 .action-plan-desc {
@@ -1663,11 +1655,15 @@ img {
 }
 
 .col-pregunta {
-  width: 185px;
+  width: 320px;
 }
 
 .col-accion {
   width: 185px;
+}
+
+.action-plan-table .col-comentarios {
+  width: 320px;
 }
 
 .col-responsable {
@@ -2478,3 +2474,4 @@ img {
     width: 100%;
   }
 }
+
