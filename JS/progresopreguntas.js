@@ -1,15 +1,9 @@
-// ======================================================
-// PRO preguntas.// PROGRESO DE PREGUNTAS
-// Guarda el progreso en localStorage y manda a Auditoría.
-// También restaura respuestas cuando regresas al módulo.
-// NO toca Azure SQL.
-// ======================================================
 
 const STORAGE_KEY_REVIEW_EN_PROGRESO = "reviewEnProgresoActual";
 
 // IMPORTANTE:
 // Si tus módulos están en la misma carpeta que Auditoria.html, usa "./Auditoria.html"
-// Si tus módulos están en otra carpeta, puede que necesites "../HTML/Auditoria.html" o similar.
+// Si tus módulos están en una subcarpeta, usa "../Auditoria.html"
 const URL_AUDITORIA = "./Auditoria.html";
 
 // ======================================================
@@ -36,8 +30,10 @@ function getUsuarioKeyProgreso() {
     user.id ||
     user.idUsuario ||
     user.idusuario ||
+    user.IdUsuario ||
     user.username ||
     user.usuario ||
+    user.user ||
     user.name ||
     user.nombre ||
     "usuario_sin_sesion"
@@ -49,7 +45,7 @@ function getStorageKeyReviewEnProgreso() {
 }
 
 // ======================================================
-// INFO DE PÁGINA ACTUAL
+// HELPERS GENERALES
 // ======================================================
 function obtenerInfoPaginaActual() {
   return {
@@ -57,6 +53,220 @@ function obtenerInfoPaginaActual() {
     search: window.location.search,
     hrefRelativo: window.location.pathname + window.location.search,
     hrefCompleto: window.location.href
+  };
+}
+
+function obtenerParametroURL(nombre) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(nombre) || "";
+}
+
+function obtenerValorElementoProgreso(id) {
+  const el = document.getElementById(id);
+  return el ? String(el.value || "").trim() : "";
+}
+
+function obtenerTextoSelectProgreso(id) {
+  const el = document.getElementById(id);
+
+  if (!el || el.selectedIndex < 0) return "";
+
+  const option = el.options[el.selectedIndex];
+
+  if (!option) return "";
+
+  const texto = String(option.textContent || "").trim();
+
+  if (
+    texto.toLowerCase().includes("select") ||
+    texto.toLowerCase().includes("selecciona")
+  ) {
+    return "";
+  }
+
+  return texto;
+}
+
+// ======================================================
+// LEER DATOS DE AUDITORÍA GUARDADOS
+// ======================================================
+function obtenerDatosAuditoriaGuardadosProgreso() {
+  try {
+    const posiblesKeys = [
+      "auditData",
+      "auditoriaData",
+      "reviewData",
+      "currentAudit",
+      "datosAuditoria",
+      "modelLineAuditData",
+      "auditInfo",
+      "reviewInfo"
+    ];
+
+    for (const key of posiblesKeys) {
+      const raw = localStorage.getItem(key);
+
+      if (!raw) continue;
+
+      let data = null;
+
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        continue;
+      }
+
+      if (!data || typeof data !== "object") continue;
+
+      return {
+        businessUnit:
+          data.businessUnit ||
+          data.idBusinessUnit ||
+          data.id_business_unit ||
+          data.bu ||
+          data.business_unit ||
+          "",
+
+        businessUnitTexto:
+          data.businessUnitTexto ||
+          data.businessUnitName ||
+          data.businessUnitNombre ||
+          data.businessUnitLabel ||
+          data.business_unit ||
+          data.buTexto ||
+          data.buName ||
+          data.bu ||
+          data.businessUnit ||
+          "",
+
+        productionLine:
+          data.productionLine ||
+          data.idProductionLine ||
+          data.id_production_line ||
+          data.pl ||
+          data.production_line ||
+          "",
+
+        productionLineTexto:
+          data.productionLineTexto ||
+          data.productionLineName ||
+          data.productionLineNombre ||
+          data.productionLineLabel ||
+          data.production_line ||
+          data.plTexto ||
+          data.plName ||
+          data.pl ||
+          data.productionLine ||
+          "",
+
+        reviewer:
+          data.reviewer ||
+          data.reviewerName ||
+          data.reviewerTexto ||
+          data.reviewerSelect ||
+          "",
+
+        assessmentDate:
+          data.assessmentDate ||
+          data.fecha ||
+          data.fechaAuditoria ||
+          data.date ||
+          ""
+      };
+    }
+
+    return {
+      businessUnit: "",
+      businessUnitTexto: "",
+      productionLine: "",
+      productionLineTexto: "",
+      reviewer: "",
+      assessmentDate: ""
+    };
+
+  } catch (error) {
+    console.warn("No se pudieron leer datos de auditoría guardados:", error);
+
+    return {
+      businessUnit: "",
+      businessUnitTexto: "",
+      productionLine: "",
+      productionLineTexto: "",
+      reviewer: "",
+      assessmentDate: ""
+    };
+  }
+}
+
+// ======================================================
+// OBTENER BU Y PL
+// ======================================================
+function obtenerBusinessUnitYProductionLineProgreso() {
+  const datosStorage = obtenerDatosAuditoriaGuardadosProgreso();
+
+  const buURL =
+    obtenerParametroURL("bu") ||
+    obtenerParametroURL("businessUnit") ||
+    obtenerParametroURL("idBusinessUnit");
+
+  const buTextoURL =
+    obtenerParametroURL("buTexto") ||
+    obtenerParametroURL("businessUnitTexto") ||
+    obtenerParametroURL("businessUnitName");
+
+  const plURL =
+    obtenerParametroURL("pl") ||
+    obtenerParametroURL("productionLine") ||
+    obtenerParametroURL("idProductionLine");
+
+  const plTextoURL =
+    obtenerParametroURL("plTexto") ||
+    obtenerParametroURL("productionLineTexto") ||
+    obtenerParametroURL("productionLineName");
+
+  const businessUnit =
+    obtenerValorElementoProgreso("businessUnit") ||
+    obtenerValorElementoProgreso("selectBusinessUnit") ||
+    obtenerValorElementoProgreso("hallazgoBusinessUnit") ||
+    datosStorage.businessUnit ||
+    buURL ||
+    "";
+
+  const businessUnitTexto =
+    obtenerTextoSelectProgreso("businessUnit") ||
+    obtenerTextoSelectProgreso("selectBusinessUnit") ||
+    obtenerTextoSelectProgreso("hallazgoBusinessUnit") ||
+    datosStorage.businessUnitTexto ||
+    buTextoURL ||
+    datosStorage.businessUnit ||
+    buURL ||
+    "";
+
+  const productionLine =
+    obtenerValorElementoProgreso("productionLine") ||
+    obtenerValorElementoProgreso("selectProductionLine") ||
+    obtenerValorElementoProgreso("hallazgoProductionLine") ||
+    datosStorage.productionLine ||
+    plURL ||
+    "";
+
+  const productionLineTexto =
+    obtenerTextoSelectProgreso("productionLine") ||
+    obtenerTextoSelectProgreso("selectProductionLine") ||
+    obtenerTextoSelectProgreso("hallazgoProductionLine") ||
+    datosStorage.productionLineTexto ||
+    plTextoURL ||
+    datosStorage.productionLine ||
+    plURL ||
+    "";
+
+  return {
+    businessUnit: String(businessUnit || "").trim(),
+    businessUnitTexto: String(businessUnitTexto || "").trim(),
+    productionLine: String(productionLine || "").trim(),
+    productionLineTexto: String(productionLineTexto || "").trim(),
+    reviewer: String(datosStorage.reviewer || "").trim(),
+    assessmentDate: String(datosStorage.assessmentDate || "").trim()
   };
 }
 
@@ -70,6 +280,7 @@ function obtenerReviewEnProgreso() {
     if (!raw) return null;
 
     return JSON.parse(raw);
+
   } catch (error) {
     console.error("Error leyendo review en progreso:", error);
     return null;
@@ -189,13 +400,29 @@ function guardarProgresoPreguntas() {
     const paginaActual = obtenerInfoPaginaActual();
     const keyPagina = paginaActual.hrefRelativo;
 
+    const datosAuditoria = obtenerBusinessUnitYProductionLineProgreso();
+
     progreso.enProgreso = true;
     progreso.actualizadoEn = new Date().toISOString();
     progreso.ultimaPagina = paginaActual;
 
+    // Guardar BU / PL para mostrarlas en Auditoria.html
+    progreso.businessUnit = datosAuditoria.businessUnit;
+    progreso.businessUnitTexto = datosAuditoria.businessUnitTexto;
+    progreso.productionLine = datosAuditoria.productionLine;
+    progreso.productionLineTexto = datosAuditoria.productionLineTexto;
+
+    // Extra opcional
+    progreso.reviewer = datosAuditoria.reviewer;
+    progreso.assessmentDate = datosAuditoria.assessmentDate;
+
     progreso.paginas[keyPagina] = {
       pagina: paginaActual,
       respuestas: obtenerRespuestasActuales(),
+      businessUnit: datosAuditoria.businessUnit,
+      businessUnitTexto: datosAuditoria.businessUnitTexto,
+      productionLine: datosAuditoria.productionLine,
+      productionLineTexto: datosAuditoria.productionLineTexto,
       guardadoEn: new Date().toISOString()
     };
 
@@ -250,7 +477,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Espera un poco por si las preguntas se cargan dinámicamente
+  // Espera por si las preguntas se cargan dinámicamente
   setTimeout(() => {
     cargarProgresoDeEstaPagina();
   }, 500);
