@@ -530,8 +530,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 <td>${escapeHTML(item.modulo)}</td>
 <td class="text-wrap-cell">${escapeHTML(item.pregunta)}</td>
 <td class="text-wrap-cell">${escapeHTML(item.accionRequerida)}</td>
-<td class="text-wrap-cell comentarios-cell">${escapeHTML(item.comentarios || "")}</td>
-<td>${escapeHTML(item.responsable)}</td>
+<td class="text-wrap-cell">${escapeHTML(item.comentarios || "")}</td>
+<td class="text-wrap-cell">${escapeHTML(item.responsable)}</td>
 <td>${escapeHTML(formatDate(item.fechaCompromiso))}</td>
 <td>${escapeHTML(formatDate(item.fechaCierre))}</td>
 <td><span class="estado-badge ${getEstadoClass(estadoCalculado)}">${escapeHTML(estadoCalculado)}</span></td>
