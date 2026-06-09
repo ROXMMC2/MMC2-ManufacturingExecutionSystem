@@ -1,3 +1,5 @@
+// ======================================================
+// CONFIG API
 // En Azure debe quedarse vacío para que use el mismo dominio.
 // NO usar http://localhost:3000 en Azure.
 // ======================================================
@@ -174,9 +176,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // ======================================================
   // SUBMENÚ REPORTS EN SIDEBAR
   // ======================================================
-
-// ======================================================
-// CONFIGById("btnReportsToggle");// CONFIG API
+  const btnReportsToggle = document.getElementById("btnReportsToggle");
   const reportsSubmenu = document.getElementById("reportsSubmenu");
   const reportsMenuGroup = document.querySelector(".reports-menu-group");
 
@@ -400,6 +400,7 @@ async function cargarCatalogosAuditoria() {
     .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")))
     .forEach(function (bu) {
       const option = document.createElement("option");
+
       option.value =
         bu.idbusinessunit ||
         bu.idBusinessUnit ||
@@ -448,6 +449,7 @@ async function cargarCatalogosAuditoria() {
 
     lines.forEach(function (pl) {
       const option = document.createElement("option");
+
       option.value =
         pl.idproductionline ||
         pl.idProductionLine ||
@@ -536,7 +538,6 @@ function guardarDatosAuditoriaActual() {
   const nombreProductionLine = lineOption ? lineOption.textContent.trim() : "";
 
   const datosIniciales = {
-    // Formato que ya usa tu backend / guardado real
     IdUsuario: reviewer.value,
     IdBusinessUnit: bu.value,
     IdProductionLine: line.value,
@@ -547,7 +548,6 @@ function guardarDatosAuditoriaActual() {
 
     FechaReview: date.value,
 
-    // Formato normalizado para progreso
     reviewer: reviewer.value,
     reviewerTexto: nombreUsuario,
 
@@ -562,10 +562,7 @@ function guardarDatosAuditoriaActual() {
     guardadoEn: new Date().toISOString()
   };
 
-  // Este lo usa tu guardado real de review
   localStorage.setItem("reviewInfo", JSON.stringify(datosIniciales));
-
-  // Este lo usa progresopreguntas.js para poder mostrar BU/PL al volver a Auditoria.html
   localStorage.setItem("modelLineAuditData", JSON.stringify(datosIniciales));
 
   console.log("Datos iniciales de auditoría guardados:", datosIniciales);
@@ -1004,6 +1001,7 @@ const MODULE_PAGE_CONFIG = {
     moduleName: "Manufacturing Strategy",
     questionStart: 1,
     questionEnd: 8,
+    prevPage: "",
     nextPage: "Lean_Foundations.html",
     isFinal: false
   },
@@ -1013,6 +1011,7 @@ const MODULE_PAGE_CONFIG = {
     moduleName: "Foundations",
     questionStart: 9,
     questionEnd: 16,
+    prevPage: "Manufacturing_Evaluation.html",
     nextPage: "High_Performance_Teams.html",
     isFinal: false
   },
@@ -1022,6 +1021,7 @@ const MODULE_PAGE_CONFIG = {
     moduleName: "High Performance Teams",
     questionStart: 17,
     questionEnd: 17,
+    prevPage: "Lean_Foundations.html",
     nextPage: "Quality_At_Source.html",
     isFinal: false
   },
@@ -1031,6 +1031,7 @@ const MODULE_PAGE_CONFIG = {
     moduleName: "Quality at Source",
     questionStart: 18,
     questionEnd: 21,
+    prevPage: "High_Performance_Teams.html",
     nextPage: "Safety_First.html",
     isFinal: false
   },
@@ -1040,6 +1041,7 @@ const MODULE_PAGE_CONFIG = {
     moduleName: "Safety First",
     questionStart: 22,
     questionEnd: 25,
+    prevPage: "Quality_At_Source.html",
     nextPage: "Design_Improvement.html",
     isFinal: false
   },
@@ -1049,6 +1051,7 @@ const MODULE_PAGE_CONFIG = {
     moduleName: "Design Improvement",
     questionStart: 26,
     questionEnd: 27,
+    prevPage: "Safety_First.html",
     nextPage: "",
     isFinal: true
   }
@@ -1223,17 +1226,130 @@ function obtenerConfigModuloActual() {
   const container = document.getElementById("questionsContainer");
 
   if (container) {
+    const configBase = MODULE_PAGE_CONFIG[pathname] || {};
+
     return {
-      moduleId: Number(container.dataset.moduleId || 0),
-      moduleName: String(container.dataset.moduleName || "").trim(),
-      questionStart: Number(container.dataset.questionStart || 0),
-      questionEnd: Number(container.dataset.questionEnd || 0),
-      nextPage: String(container.dataset.nextPage || "").trim(),
-      isFinal: String(container.dataset.final || "").toLowerCase() === "true"
+      moduleId: Number(container.dataset.moduleId || configBase.moduleId || 0),
+      moduleName: String(container.dataset.moduleName || configBase.moduleName || "").trim(),
+      questionStart: Number(container.dataset.questionStart || configBase.questionStart || 0),
+      questionEnd: Number(container.dataset.questionEnd || configBase.questionEnd || 0),
+      prevPage: String(container.dataset.prevPage || configBase.prevPage || "").trim(),
+      nextPage: String(container.dataset.nextPage || configBase.nextPage || "").trim(),
+      isFinal:
+        String(container.dataset.final || "").toLowerCase() === "true" ||
+        Boolean(configBase.isFinal)
     };
   }
 
   return MODULE_PAGE_CONFIG[pathname] || null;
+}
+
+// ======================================================
+// BOTÓN MÓDULO ANTERIOR
+// Se crea automáticamente en los módulos de preguntas.
+// ======================================================
+function crearBotonModuloAnteriorSiNoExiste(configModulo) {
+  const prevPage = String(configModulo?.prevPage || "").trim();
+
+  let btnPrev = document.getElementById("btnPrevModule");
+
+  if (!prevPage) {
+    if (btnPrev) {
+      btnPrev.style.display = "none";
+    }
+    return;
+  }
+
+  if (btnPrev) return;
+
+  const actions = document.querySelector(".evaluation-actions");
+
+  if (!actions) {
+    console.warn("No existe .evaluation-actions para insertar el botón anterior.");
+    return;
+  }
+
+  btnPrev = document.createElement("button");
+  btnPrev.id = "btnPrevModule";
+  btnPrev.type = "button";
+  btnPrev.className = "btn btn-outline-secondary";
+  btnPrev.innerHTML = `
+    <i class="fa-solid fa-arrow-left"></i>
+    Módulo anterior
+  `;
+
+  actions.insertBefore(btnPrev, actions.firstChild);
+}
+
+function inicializarBotonModuloAnterior(configModulo) {
+  crearBotonModuloAnteriorSiNoExiste(configModulo);
+
+  const btnPrev = document.getElementById("btnPrevModule");
+  const prevPage = String(configModulo?.prevPage || "").trim();
+
+  if (!btnPrev) return;
+
+  if (!prevPage) {
+    btnPrev.style.display = "none";
+    return;
+  }
+
+  btnPrev.style.display = "inline-flex";
+
+  btnPrev.onclick = function (e) {
+    e.preventDefault();
+    window.location.href = prevPage;
+  };
+}
+
+// ======================================================
+// RESTAURAR RESPUESTAS GUARDADAS AL REGRESAR DE MÓDULO
+// ======================================================
+function restaurarRespuestasModuloDesdeStorage(idModulo) {
+  try {
+    const modulos = JSON.parse(localStorage.getItem("modulos") || "[]");
+
+    if (!Array.isArray(modulos) || !modulos.length) return;
+
+    const moduloGuardado = modulos.find((m) => {
+      return Number(m.IdModulo) === Number(idModulo);
+    });
+
+    if (!moduloGuardado || !Array.isArray(moduloGuardado.respuestas)) return;
+
+    moduloGuardado.respuestas.forEach((respuesta) => {
+      const idPregunta = respuesta.IdPregunta;
+      const puntuacion = respuesta.Puntuacion;
+      const comentario = respuesta.Comentario || "";
+
+      const radio = document.querySelector(
+        `input[type="radio"][name="pregunta${idPregunta}"][value="${puntuacion}"]`
+      );
+
+      if (radio) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      const textarea = document.getElementById(`comentario${idPregunta}`);
+
+      if (textarea) {
+        textarea.value = comentario;
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        textarea.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      const error = document.getElementById(`error_pregunta${idPregunta}`);
+
+      if (error) {
+        error.style.display = "none";
+      }
+    });
+
+    console.log("Respuestas restauradas para módulo:", idModulo);
+  } catch (error) {
+    console.warn("No se pudieron restaurar respuestas del módulo:", error);
+  }
 }
 
 function prepararContenedorPreguntasDinamicas() {
@@ -1287,6 +1403,8 @@ async function inicializarCuestionarioDinamico() {
   const questionEnd = Number(configModulo.questionEnd);
   const nextPage = String(configModulo.nextPage || "").trim();
   const isFinal = Boolean(configModulo.isFinal);
+
+  inicializarBotonModuloAnterior(configModulo);
 
   console.log("Config módulo:", {
     moduleId,
@@ -1367,6 +1485,8 @@ async function inicializarCuestionarioDinamico() {
     container.innerHTML = preguntasNormalizadasFinal
       .map(crearPreguntaHTML)
       .join("");
+
+    restaurarRespuestasModuloDesdeStorage(moduleId);
 
     const numerosPreguntas = preguntasNormalizadasFinal.map(p =>
       Number(p.numeroGlobal)
