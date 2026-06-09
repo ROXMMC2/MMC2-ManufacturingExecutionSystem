@@ -73,6 +73,147 @@ function getRolDesdeRequest(req) {
 }
 
 // ======================================================
+// OUTPUTS COMUNES
+// ======================================================
+const OUTPUT_INSERTED = `
+  INSERTED.id_action_plan AS id,
+  INSERTED.id_action_plan AS idActionPlan,
+  INSERTED.id_action_plan AS id_action_plan,
+
+  INSERTED.fecha,
+
+  INSERTED.id_usuario AS creadoPorId,
+  INSERTED.id_usuario AS idUsuario,
+  INSERTED.id_usuario AS id_usuario,
+
+  INSERTED.creado_por AS creadoPor,
+  INSERTED.creado_por AS creado_por,
+
+  INSERTED.id_business_unit AS idBusinessUnit,
+  INSERTED.id_business_unit AS id_business_unit,
+
+  INSERTED.business_unit AS businessUnit,
+  INSERTED.business_unit AS business_unit,
+
+  INSERTED.id_production_line AS idProductionLine,
+  INSERTED.id_production_line AS id_production_line,
+
+  INSERTED.production_line AS productionLine,
+  INSERTED.production_line AS production_line,
+
+  INSERTED.id_modulo AS idModulo,
+  INSERTED.id_modulo AS id_modulo,
+
+  INSERTED.modulo,
+
+  INSERTED.id_pregunta AS idPregunta,
+  INSERTED.id_pregunta AS id_pregunta,
+
+  INSERTED.pregunta,
+
+  INSERTED.accion_requerida AS accionRequerida,
+  INSERTED.accion_requerida AS accion_requerida,
+
+  INSERTED.comentarios AS comentarios,
+  INSERTED.comentarios AS comentario,
+  INSERTED.comentarios AS comments,
+
+  INSERTED.responsable,
+
+  INSERTED.fecha_compromiso AS fechaCompromiso,
+  INSERTED.fecha_compromiso AS fecha_compromiso,
+
+  INSERTED.fecha_cierre AS fechaCierre,
+  INSERTED.fecha_cierre AS fecha_cierre,
+
+  INSERTED.estado,
+
+  INSERTED.creado_en AS creadoEn,
+  INSERTED.creado_en AS creado_en,
+
+  INSERTED.actualizado_en AS actualizadoEn,
+  INSERTED.actualizado_en AS actualizado_en,
+
+  INSERTED.eliminado_visual AS eliminadoVisual,
+  INSERTED.eliminado_visual AS eliminado_visual,
+
+  INSERTED.eliminado_por AS eliminadoPor,
+  INSERTED.eliminado_por AS eliminado_por,
+
+  INSERTED.eliminado_fecha AS eliminadoFecha,
+  INSERTED.eliminado_fecha AS eliminado_fecha
+`;
+
+const OUTPUT_DELETED = `
+  DELETED.id_action_plan AS id,
+  DELETED.id_action_plan AS idActionPlan,
+  DELETED.id_action_plan AS id_action_plan,
+
+  DELETED.fecha,
+
+  DELETED.id_usuario AS creadoPorId,
+  DELETED.id_usuario AS idUsuario,
+  DELETED.id_usuario AS id_usuario,
+
+  DELETED.creado_por AS creadoPor,
+  DELETED.creado_por AS creado_por,
+
+  DELETED.id_business_unit AS idBusinessUnit,
+  DELETED.id_business_unit AS id_business_unit,
+
+  DELETED.business_unit AS businessUnit,
+  DELETED.business_unit AS business_unit,
+
+  DELETED.id_production_line AS idProductionLine,
+  DELETED.id_production_line AS id_production_line,
+
+  DELETED.production_line AS productionLine,
+  DELETED.production_line AS production_line,
+
+  DELETED.id_modulo AS idModulo,
+  DELETED.id_modulo AS id_modulo,
+
+  DELETED.modulo,
+
+  DELETED.id_pregunta AS idPregunta,
+  DELETED.id_pregunta AS id_pregunta,
+
+  DELETED.pregunta,
+
+  DELETED.accion_requerida AS accionRequerida,
+  DELETED.accion_requerida AS accion_requerida,
+
+  DELETED.comentarios AS comentarios,
+  DELETED.comentarios AS comentario,
+  DELETED.comentarios AS comments,
+
+  DELETED.responsable,
+
+  DELETED.fecha_compromiso AS fechaCompromiso,
+  DELETED.fecha_compromiso AS fecha_compromiso,
+
+  DELETED.fecha_cierre AS fechaCierre,
+  DELETED.fecha_cierre AS fecha_cierre,
+
+  DELETED.estado,
+
+  DELETED.creado_en AS creadoEn,
+  DELETED.creado_en AS creado_en,
+
+  DELETED.actualizado_en AS actualizadoEn,
+  DELETED.actualizado_en AS actualizado_en,
+
+  DELETED.eliminado_visual AS eliminadoVisual,
+  DELETED.eliminado_visual AS eliminado_visual,
+
+  DELETED.eliminado_por AS eliminadoPor,
+  DELETED.eliminado_por AS eliminado_por,
+
+  DELETED.eliminado_fecha AS eliminadoFecha,
+  DELETED.eliminado_fecha AS eliminado_fecha
+`;
+
+// ======================================================
 // GET /api/action-plans
 // Obtener todos los planes de acción visibles
 // ======================================================
@@ -119,6 +260,10 @@ router.get("/", async (req, res) => {
 
         accion_requerida AS accionRequerida,
         accion_requerida AS accion_requerida,
+
+        comentarios AS comentarios,
+        comentarios AS comentario,
+        comentarios AS comments,
 
         responsable,
 
@@ -183,6 +328,7 @@ router.post("/", async (req, res) => {
       idPregunta,
       pregunta,
       accionRequerida,
+      comentarios,
       responsable,
       fechaCompromiso,
       fechaCierre,
@@ -233,6 +379,7 @@ router.post("/", async (req, res) => {
       .input("id_pregunta", sql.Int, toIntOrNull(idPregunta))
       .input("pregunta", sql.NVarChar(sql.MAX), toTextOrNull(pregunta))
       .input("accion_requerida", sql.NVarChar(sql.MAX), toTextOrNull(accionRequerida))
+      .input("comentarios", sql.NVarChar(sql.MAX), toTextOrNull(comentarios))
       .input("responsable", sql.NVarChar(sql.MAX), toTextOrNull(responsable))
       .input("fecha_compromiso", sql.Date, toDateOrNull(fechaCompromiso))
       .input("fecha_cierre", sql.Date, toDateOrNull(fechaCierre))
@@ -251,6 +398,7 @@ router.post("/", async (req, res) => {
           id_pregunta,
           pregunta,
           accion_requerida,
+          comentarios,
           responsable,
           fecha_compromiso,
           fecha_cierre,
@@ -258,69 +406,7 @@ router.post("/", async (req, res) => {
           eliminado_visual
         )
         OUTPUT
-          INSERTED.id_action_plan AS id,
-          INSERTED.id_action_plan AS idActionPlan,
-          INSERTED.id_action_plan AS id_action_plan,
-
-          INSERTED.fecha,
-
-          INSERTED.id_usuario AS creadoPorId,
-          INSERTED.id_usuario AS idUsuario,
-          INSERTED.id_usuario AS id_usuario,
-
-          INSERTED.creado_por AS creadoPor,
-          INSERTED.creado_por AS creado_por,
-
-          INSERTED.id_business_unit AS idBusinessUnit,
-          INSERTED.id_business_unit AS id_business_unit,
-
-          INSERTED.business_unit AS businessUnit,
-          INSERTED.business_unit AS business_unit,
-
-          INSERTED.id_production_line AS idProductionLine,
-          INSERTED.id_production_line AS id_production_line,
-
-          INSERTED.production_line AS productionLine,
-          INSERTED.production_line AS production_line,
-
-          INSERTED.id_modulo AS idModulo,
-          INSERTED.id_modulo AS id_modulo,
-
-          INSERTED.modulo,
-
-          INSERTED.id_pregunta AS idPregunta,
-          INSERTED.id_pregunta AS id_pregunta,
-
-          INSERTED.pregunta,
-
-          INSERTED.accion_requerida AS accionRequerida,
-          INSERTED.accion_requerida AS accion_requerida,
-
-          INSERTED.responsable,
-
-          INSERTED.fecha_compromiso AS fechaCompromiso,
-          INSERTED.fecha_compromiso AS fecha_compromiso,
-
-          INSERTED.fecha_cierre AS fechaCierre,
-          INSERTED.fecha_cierre AS fecha_cierre,
-
-          INSERTED.estado,
-
-          INSERTED.creado_en AS creadoEn,
-          INSERTED.creado_en AS creado_en,
-
-          INSERTED.actualizado_en AS actualizadoEn,
-          INSERTED.actualizado_en AS actualizado_en,
-
-          INSERTED.eliminado_visual AS eliminadoVisual,
-          INSERTED.eliminado_visual AS eliminado_visual,
-
-          INSERTED.eliminado_por AS eliminadoPor,
-          INSERTED.eliminado_por AS eliminado_por,
-
-          INSERTED.eliminado_fecha AS eliminadoFecha,
-          INSERTED.eliminado_fecha AS eliminado_fecha
-
+          ${OUTPUT_INSERTED}
         VALUES (
           @fecha,
           @id_usuario,
@@ -334,6 +420,7 @@ router.post("/", async (req, res) => {
           @id_pregunta,
           @pregunta,
           @accion_requerida,
+          @comentarios,
           @responsable,
           @fecha_compromiso,
           @fecha_cierre,
@@ -388,6 +475,7 @@ router.put("/:id", async (req, res) => {
       idPregunta,
       pregunta,
       accionRequerida,
+      comentarios,
       responsable,
       fechaCompromiso,
       fechaCierre,
@@ -410,6 +498,7 @@ router.put("/:id", async (req, res) => {
       .input("id_pregunta", sql.Int, toIntOrNull(idPregunta))
       .input("pregunta", sql.NVarChar(sql.MAX), toTextOrNull(pregunta))
       .input("accion_requerida", sql.NVarChar(sql.MAX), toTextOrNull(accionRequerida))
+      .input("comentarios", sql.NVarChar(sql.MAX), toTextOrNull(comentarios))
       .input("responsable", sql.NVarChar(sql.MAX), toTextOrNull(responsable))
       .input("fecha_compromiso", sql.Date, toDateOrNull(fechaCompromiso))
       .input("fecha_cierre", sql.Date, toDateOrNull(fechaCierre))
@@ -429,75 +518,14 @@ router.put("/:id", async (req, res) => {
           id_pregunta = @id_pregunta,
           pregunta = @pregunta,
           accion_requerida = @accion_requerida,
+          comentarios = @comentarios,
           responsable = @responsable,
           fecha_compromiso = @fecha_compromiso,
           fecha_cierre = @fecha_cierre,
           estado = @estado,
           actualizado_en = SYSDATETIME()
         OUTPUT
-          INSERTED.id_action_plan AS id,
-          INSERTED.id_action_plan AS idActionPlan,
-          INSERTED.id_action_plan AS id_action_plan,
-
-          INSERTED.fecha,
-
-          INSERTED.id_usuario AS creadoPorId,
-          INSERTED.id_usuario AS idUsuario,
-          INSERTED.id_usuario AS id_usuario,
-
-          INSERTED.creado_por AS creadoPor,
-          INSERTED.creado_por AS creado_por,
-
-          INSERTED.id_business_unit AS idBusinessUnit,
-          INSERTED.id_business_unit AS id_business_unit,
-
-          INSERTED.business_unit AS businessUnit,
-          INSERTED.business_unit AS business_unit,
-
-          INSERTED.id_production_line AS idProductionLine,
-          INSERTED.id_production_line AS id_production_line,
-
-          INSERTED.production_line AS productionLine,
-          INSERTED.production_line AS production_line,
-
-          INSERTED.id_modulo AS idModulo,
-          INSERTED.id_modulo AS id_modulo,
-
-          INSERTED.modulo,
-
-          INSERTED.id_pregunta AS idPregunta,
-          INSERTED.id_pregunta AS id_pregunta,
-
-          INSERTED.pregunta,
-
-          INSERTED.accion_requerida AS accionRequerida,
-          INSERTED.accion_requerida AS accion_requerida,
-
-          INSERTED.responsable,
-
-          INSERTED.fecha_compromiso AS fechaCompromiso,
-          INSERTED.fecha_compromiso AS fecha_compromiso,
-
-          INSERTED.fecha_cierre AS fechaCierre,
-          INSERTED.fecha_cierre AS fecha_cierre,
-
-          INSERTED.estado,
-
-          INSERTED.creado_en AS creadoEn,
-          INSERTED.creado_en AS creado_en,
-
-          INSERTED.actualizado_en AS actualizadoEn,
-          INSERTED.actualizado_en AS actualizado_en,
-
-          INSERTED.eliminado_visual AS eliminadoVisual,
-          INSERTED.eliminado_visual AS eliminado_visual,
-
-          INSERTED.eliminado_por AS eliminadoPor,
-          INSERTED.eliminado_por AS eliminado_por,
-
-          INSERTED.eliminado_fecha AS eliminadoFecha,
-          INSERTED.eliminado_fecha AS eliminado_fecha
-
+          ${OUTPUT_INSERTED}
         WHERE id_action_plan = @id_action_plan
           AND ISNULL(eliminado_visual, 0) = 0;
       `);
@@ -553,69 +581,7 @@ router.patch("/:id/cerrar", async (req, res) => {
           estado = 'CERRADO',
           actualizado_en = SYSDATETIME()
         OUTPUT
-          INSERTED.id_action_plan AS id,
-          INSERTED.id_action_plan AS idActionPlan,
-          INSERTED.id_action_plan AS id_action_plan,
-
-          INSERTED.fecha,
-
-          INSERTED.id_usuario AS creadoPorId,
-          INSERTED.id_usuario AS idUsuario,
-          INSERTED.id_usuario AS id_usuario,
-
-          INSERTED.creado_por AS creadoPor,
-          INSERTED.creado_por AS creado_por,
-
-          INSERTED.id_business_unit AS idBusinessUnit,
-          INSERTED.id_business_unit AS id_business_unit,
-
-          INSERTED.business_unit AS businessUnit,
-          INSERTED.business_unit AS business_unit,
-
-          INSERTED.id_production_line AS idProductionLine,
-          INSERTED.id_production_line AS id_production_line,
-
-          INSERTED.production_line AS productionLine,
-          INSERTED.production_line AS production_line,
-
-          INSERTED.id_modulo AS idModulo,
-          INSERTED.id_modulo AS id_modulo,
-
-          INSERTED.modulo,
-
-          INSERTED.id_pregunta AS idPregunta,
-          INSERTED.id_pregunta AS id_pregunta,
-
-          INSERTED.pregunta,
-
-          INSERTED.accion_requerida AS accionRequerida,
-          INSERTED.accion_requerida AS accion_requerida,
-
-          INSERTED.responsable,
-
-          INSERTED.fecha_compromiso AS fechaCompromiso,
-          INSERTED.fecha_compromiso AS fecha_compromiso,
-
-          INSERTED.fecha_cierre AS fechaCierre,
-          INSERTED.fecha_cierre AS fecha_cierre,
-
-          INSERTED.estado,
-
-          INSERTED.creado_en AS creadoEn,
-          INSERTED.creado_en AS creado_en,
-
-          INSERTED.actualizado_en AS actualizadoEn,
-          INSERTED.actualizado_en AS actualizado_en,
-
-          INSERTED.eliminado_visual AS eliminadoVisual,
-          INSERTED.eliminado_visual AS eliminado_visual,
-
-          INSERTED.eliminado_por AS eliminadoPor,
-          INSERTED.eliminado_por AS eliminado_por,
-
-          INSERTED.eliminado_fecha AS eliminadoFecha,
-          INSERTED.eliminado_fecha AS eliminado_fecha
-
+          ${OUTPUT_INSERTED}
         WHERE id_action_plan = @id_action_plan
           AND ISNULL(eliminado_visual, 0) = 0;
       `);
@@ -648,11 +614,6 @@ router.patch("/:id/cerrar", async (req, res) => {
 // ======================================================
 // PATCH /api/action-plans/:id/ocultar
 // Ocultar visualmente plan de acción
-//
-// IMPORTANTE:
-// - No borra de la base de datos.
-// - Solo cambia eliminado_visual = 1.
-// - Todos los administradores pueden hacerlo.
 // ======================================================
 router.patch("/:id/ocultar", async (req, res) => {
   try {
@@ -688,69 +649,7 @@ router.patch("/:id/ocultar", async (req, res) => {
           eliminado_fecha = SYSDATETIME(),
           actualizado_en = SYSDATETIME()
         OUTPUT
-          INSERTED.id_action_plan AS id,
-          INSERTED.id_action_plan AS idActionPlan,
-          INSERTED.id_action_plan AS id_action_plan,
-
-          INSERTED.fecha,
-
-          INSERTED.id_usuario AS creadoPorId,
-          INSERTED.id_usuario AS idUsuario,
-          INSERTED.id_usuario AS id_usuario,
-
-          INSERTED.creado_por AS creadoPor,
-          INSERTED.creado_por AS creado_por,
-
-          INSERTED.id_business_unit AS idBusinessUnit,
-          INSERTED.id_business_unit AS id_business_unit,
-
-          INSERTED.business_unit AS businessUnit,
-          INSERTED.business_unit AS business_unit,
-
-          INSERTED.id_production_line AS idProductionLine,
-          INSERTED.id_production_line AS id_production_line,
-
-          INSERTED.production_line AS productionLine,
-          INSERTED.production_line AS production_line,
-
-          INSERTED.id_modulo AS idModulo,
-          INSERTED.id_modulo AS id_modulo,
-
-          INSERTED.modulo,
-
-          INSERTED.id_pregunta AS idPregunta,
-          INSERTED.id_pregunta AS id_pregunta,
-
-          INSERTED.pregunta,
-
-          INSERTED.accion_requerida AS accionRequerida,
-          INSERTED.accion_requerida AS accion_requerida,
-
-          INSERTED.responsable,
-
-          INSERTED.fecha_compromiso AS fechaCompromiso,
-          INSERTED.fecha_compromiso AS fecha_compromiso,
-
-          INSERTED.fecha_cierre AS fechaCierre,
-          INSERTED.fecha_cierre AS fecha_cierre,
-
-          INSERTED.estado,
-
-          INSERTED.creado_en AS creadoEn,
-          INSERTED.creado_en AS creado_en,
-
-          INSERTED.actualizado_en AS actualizadoEn,
-          INSERTED.actualizado_en AS actualizado_en,
-
-          INSERTED.eliminado_visual AS eliminadoVisual,
-          INSERTED.eliminado_visual AS eliminado_visual,
-
-          INSERTED.eliminado_por AS eliminadoPor,
-          INSERTED.eliminado_por AS eliminado_por,
-
-          INSERTED.eliminado_fecha AS eliminadoFecha,
-          INSERTED.eliminado_fecha AS eliminado_fecha
-
+          ${OUTPUT_INSERTED}
         WHERE id_action_plan = @id_action_plan
           AND ISNULL(eliminado_visual, 0) = 0;
       `);
@@ -783,10 +682,7 @@ router.patch("/:id/ocultar", async (req, res) => {
 // ======================================================
 // DELETE /api/action-plans/:id
 // Eliminar permanentemente de la base de datos
-//
-// IMPORTANTE:
-// - Este sí borra el registro real.
-// - Solo el usuario AASOLIS puede hacerlo.
+// Solo AASOLIS
 // ======================================================
 router.delete("/:id", async (req, res) => {
   try {
@@ -815,69 +711,7 @@ router.delete("/:id", async (req, res) => {
       .query(`
         DELETE FROM dbo.action_plans
         OUTPUT
-          DELETED.id_action_plan AS id,
-          DELETED.id_action_plan AS idActionPlan,
-          DELETED.id_action_plan AS id_action_plan,
-
-          DELETED.fecha,
-
-          DELETED.id_usuario AS creadoPorId,
-          DELETED.id_usuario AS idUsuario,
-          DELETED.id_usuario AS id_usuario,
-
-          DELETED.creado_por AS creadoPor,
-          DELETED.creado_por AS creado_por,
-
-          DELETED.id_business_unit AS idBusinessUnit,
-          DELETED.id_business_unit AS id_business_unit,
-
-          DELETED.business_unit AS businessUnit,
-          DELETED.business_unit AS business_unit,
-
-          DELETED.id_production_line AS idProductionLine,
-          DELETED.id_production_line AS id_production_line,
-
-          DELETED.production_line AS productionLine,
-          DELETED.production_line AS production_line,
-
-          DELETED.id_modulo AS idModulo,
-          DELETED.id_modulo AS id_modulo,
-
-          DELETED.modulo,
-
-          DELETED.id_pregunta AS idPregunta,
-          DELETED.id_pregunta AS id_pregunta,
-
-          DELETED.pregunta,
-
-          DELETED.accion_requerida AS accionRequerida,
-          DELETED.accion_requerida AS accion_requerida,
-
-          DELETED.responsable,
-
-          DELETED.fecha_compromiso AS fechaCompromiso,
-          DELETED.fecha_compromiso AS fecha_compromiso,
-
-          DELETED.fecha_cierre AS fechaCierre,
-          DELETED.fecha_cierre AS fecha_cierre,
-
-          DELETED.estado,
-
-          DELETED.creado_en AS creadoEn,
-          DELETED.creado_en AS creado_en,
-
-          DELETED.actualizado_en AS actualizadoEn,
-          DELETED.actualizado_en AS actualizado_en,
-
-          DELETED.eliminado_visual AS eliminadoVisual,
-          DELETED.eliminado_visual AS eliminado_visual,
-
-          DELETED.eliminado_por AS eliminadoPor,
-          DELETED.eliminado_por AS eliminado_por,
-
-          DELETED.eliminado_fecha AS eliminadoFecha,
-          DELETED.eliminado_fecha AS eliminado_fecha
-
+          ${OUTPUT_DELETED}
         WHERE id_action_plan = @id_action_plan;
       `);
 
