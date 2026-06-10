@@ -1,3 +1,18 @@
+// ======================================================
+// AUDITORÍA - CONTINUAR / CANCELAR PROGRESO
+// Archivo: auditoriaProgreso.js
+//
+// Este archivo va SOLO en Auditoria.html.
+//
+// Función:
+// - Busca review en progreso SOLO del usuario actual.
+// - Carga BU, PL, Reviewer y Fecha en los campos de Auditoria.html.
+// - Deshabilita "Empezar evaluación" si hay progreso.
+// - Muestra "Continuar progreso" y "Cancelar auditoría".
+// - Cancelar auditoría borra SOLO el progreso del usuario actual.
+//
+// NO toca Azure SQL.
+// ======================================================
 
 const STORAGE_KEY_REVIEW_EN_PROGRESO_AUDITORIA = "reviewEnProgresoActual";
 
@@ -124,6 +139,7 @@ function obtenerDatosAuditoriaDesdeProgreso(progreso) {
       productionLine: "",
       productionLineTexto: "",
       reviewer: "",
+      reviewerTexto: "",
       assessmentDate: ""
     };
   }
@@ -195,11 +211,23 @@ function obtenerDatosAuditoriaDesdeProgreso(progreso) {
       ""
     ).trim(),
 
+    // ID del reviewer
     reviewer: String(
       progreso.reviewer ||
-      progreso.reviewerName ||
+      progreso.IdUsuario ||
+      progreso.idUsuario ||
+      progreso.id_usuario ||
+      ""
+    ).trim(),
+
+    // Nombre del reviewer
+    reviewerTexto: String(
       progreso.reviewerTexto ||
       progreso.NombreUsuario ||
+      progreso.reviewerName ||
+      progreso.reviewerNombre ||
+      progreso.nombreUsuario ||
+      progreso.usuario ||
       ""
     ).trim(),
 
@@ -297,12 +325,15 @@ function cargarCamposAuditoriaConProgreso(progreso) {
     }
   }, 300);
 
-  // 3. Cargar reviewer si existe
-  if (reviewerSelect && datos.reviewer) {
+  // 3. Cargar reviewer con NOMBRE, no solo ID
+  if (reviewerSelect) {
+    const reviewerValor = datos.reviewer || "";
+    const reviewerTexto = datos.reviewerTexto || datos.reviewer || "";
+
     seleccionarValorEnSelectAuditoria(
       "reviewerSelect",
-      datos.reviewer,
-      datos.reviewer
+      reviewerValor,
+      reviewerTexto
     );
   }
 
@@ -333,6 +364,39 @@ function bloquearBotonEmpezarEvaluacion() {
 }
 
 // ======================================================
+// LIMPIAR CAMPOS DE AUDITORÍA DESPUÉS DE CANCELAR
+// ======================================================
+function limpiarCamposAuditoriaDespuesDeCancelar() {
+  const businessUnitSelect = document.getElementById("businessUnit");
+  const productionLineSelect = document.getElementById("productionLine");
+  const reviewerSelect = document.getElementById("reviewerSelect");
+  const assessmentDateInput = document.getElementById("assessmentDate");
+
+  if (businessUnitSelect) {
+    businessUnitSelect.disabled = false;
+    businessUnitSelect.value = "";
+    businessUnitSelect.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  if (productionLineSelect) {
+    productionLineSelect.value = "";
+    productionLineSelect.disabled = true;
+  }
+
+  if (reviewerSelect) {
+    reviewerSelect.disabled = true;
+  }
+
+  if (assessmentDateInput) {
+    assessmentDateInput.disabled = false;
+
+    if (typeof getFechaLocalSoloFecha === "function") {
+      assessmentDateInput.value = getFechaLocalSoloFecha();
+    }
+  }
+}
+
+// ======================================================
 // DESBLOQUEAR SI NO HAY PROGRESO DEL USUARIO ACTUAL
 // ======================================================
 function desbloquearAuditoriaSinProgreso() {
@@ -353,7 +417,6 @@ function desbloquearAuditoriaSinProgreso() {
   if (businessUnitSelect) businessUnitSelect.disabled = false;
 
   // Production Line normalmente inicia deshabilitada hasta seleccionar BU.
-  // Si ya hay BU seleccionada, se puede dejar habilitada.
   if (productionLineSelect) {
     productionLineSelect.disabled = !businessUnitSelect || !businessUnitSelect.value;
   }
@@ -383,7 +446,44 @@ function continuarReviewEnProgresoAuditoria() {
 }
 
 // ======================================================
-// RENDERIZAR SOLO BOTÓN CONTINUAR PROGRESO
+// CANCELAR AUDITORÍA EN PROGRESO
+// ======================================================
+function cancelarAuditoriaEnProgreso() {
+  const storageKey = getStorageKeyReviewEnProgresoAuditoria();
+
+  if (!storageKey) {
+    alert("No se encontró el usuario actual. Vuelve a iniciar sesión.");
+    return;
+  }
+
+  const confirmar = confirm(
+    "¿Seguro que deseas cancelar esta auditoría?\n\n"
+  );
+
+  if (!confirmar) return;
+
+  try {
+    // Borra SOLO el progreso del usuario actual
+    localStorage.removeItem(storageKey);
+
+    // Borra datos temporales de la auditoría actual
+    localStorage.removeItem("reviewInfo");
+    localStorage.removeItem("modelLineAuditData");
+    localStorage.removeItem("modulos");
+
+    limpiarCamposAuditoriaDespuesDeCancelar();
+
+    renderBotonContinuarProgresoAuditoria();
+
+    alert("Auditoría cancelada correctamente.");
+  } catch (error) {
+    console.error("Error cancelando auditoría:", error);
+    alert("No se pudo cancelar la auditoría.");
+  }
+}
+
+// ======================================================
+// RENDERIZAR BOTONES CONTINUAR / CANCELAR
 // ======================================================
 function renderBotonContinuarProgresoAuditoria() {
   const contenedor = document.getElementById("contenedorReviewEnProgreso");
@@ -402,32 +502,51 @@ function renderBotonContinuarProgresoAuditoria() {
     return;
   }
 
-  // Cargar datos arriba en BU / PL / fecha
+  // Cargar datos arriba en BU / PL / reviewer / fecha
   cargarCamposAuditoriaConProgreso(progreso);
 
   // Bloquear botón empezar
   bloquearBotonEmpezarEvaluacion();
 
-  // Mostrar botón continuar
+  // Mostrar botones
   contenedor.style.display = "block";
 
   contenedor.innerHTML = `
-    <button
-      type="button"
-      id="btnContinuarReviewEnProgreso"
-      class="btn btn-outline-primary px-4"
-    >
-      <i class="fa-solid fa-arrow-right"></i>
-      Continuar progreso
-    </button>
+    <div class="auditoria-progress-actions">
+      <button
+        type="button"
+        id="btnContinuarReviewEnProgreso"
+        class="btn btn-outline-primary px-4"
+      >
+        <i class="fa-solid fa-arrow-right"></i>
+        Continuar progreso
+      </button>
+
+      <button
+        type="button"
+        id="btnCancelarAuditoriaProgreso"
+        class="btn btn-outline-danger px-4"
+      >
+        <i class="fa-solid fa-ban"></i>
+        Cancelar auditoría
+      </button>
+    </div>
   `;
 
   const btnContinuar = document.getElementById("btnContinuarReviewEnProgreso");
+  const btnCancelar = document.getElementById("btnCancelarAuditoriaProgreso");
 
   if (btnContinuar) {
     btnContinuar.addEventListener("click", function (e) {
       e.preventDefault();
       continuarReviewEnProgresoAuditoria();
+    });
+  }
+
+  if (btnCancelar) {
+    btnCancelar.addEventListener("click", function (e) {
+      e.preventDefault();
+      cancelarAuditoriaEnProgreso();
     });
   }
 }
