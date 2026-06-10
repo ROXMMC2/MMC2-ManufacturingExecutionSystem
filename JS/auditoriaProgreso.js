@@ -1,7 +1,9 @@
 
-
 const STORAGE_KEY_REVIEW_EN_PROGRESO_AUDITORIA = "reviewEnProgresoActual";
 
+// ======================================================
+// USUARIO ACTUAL
+// ======================================================
 function getUsuarioSesionAuditoriaProgreso() {
   try {
     return (
@@ -18,7 +20,7 @@ function getUsuarioSesionAuditoriaProgreso() {
 function getUsuarioKeyAuditoriaProgreso() {
   const user = getUsuarioSesionAuditoriaProgreso();
 
-  if (!user) return "usuario_sin_sesion";
+  if (!user) return "";
 
   return String(
     user.id ||
@@ -30,65 +32,66 @@ function getUsuarioKeyAuditoriaProgreso() {
     user.user ||
     user.name ||
     user.nombre ||
-    "usuario_sin_sesion"
+    ""
   ).trim();
 }
 
 function getStorageKeyReviewEnProgresoAuditoria() {
-  return `${STORAGE_KEY_REVIEW_EN_PROGRESO_AUDITORIA}_${getUsuarioKeyAuditoriaProgreso()}`;
+  const usuarioKey = getUsuarioKeyAuditoriaProgreso();
+
+  if (!usuarioKey) return "";
+
+  return `${STORAGE_KEY_REVIEW_EN_PROGRESO_AUDITORIA}_${usuarioKey}`;
 }
 
 // ======================================================
-// BUSCAR REVIEW EN PROGRESO
+// BUSCAR REVIEW EN PROGRESO SOLO DEL USUARIO ACTUAL
 // ======================================================
 function obtenerReviewEnProgresoAuditoria() {
   try {
-    const keyUsuarioActual = getStorageKeyReviewEnProgresoAuditoria();
-    const rawUsuarioActual = localStorage.getItem(keyUsuarioActual);
+    const usuarioKey = getUsuarioKeyAuditoriaProgreso();
+    const storageKey = getStorageKeyReviewEnProgresoAuditoria();
 
-    if (rawUsuarioActual) {
-      const progresoUsuarioActual = JSON.parse(rawUsuarioActual);
-
-      if (
-        progresoUsuarioActual &&
-        progresoUsuarioActual.enProgreso === true &&
-        progresoUsuarioActual.ultimaPagina &&
-        progresoUsuarioActual.ultimaPagina.hrefRelativo
-      ) {
-        return progresoUsuarioActual;
-      }
+    if (!usuarioKey || !storageKey) {
+      console.log("No hay usuario logueado. No se busca progreso.");
+      return null;
     }
 
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    const raw = localStorage.getItem(storageKey);
 
-      if (!key) continue;
-
-      if (!key.startsWith(`${STORAGE_KEY_REVIEW_EN_PROGRESO_AUDITORIA}_`)) {
-        continue;
-      }
-
-      const raw = localStorage.getItem(key);
-
-      if (!raw) continue;
-
-      try {
-        const progreso = JSON.parse(raw);
-
-        if (
-          progreso &&
-          progreso.enProgreso === true &&
-          progreso.ultimaPagina &&
-          progreso.ultimaPagina.hrefRelativo
-        ) {
-          return progreso;
-        }
-      } catch (errorInterno) {
-        console.warn("No se pudo leer esta llave de progreso:", key, errorInterno);
-      }
+    if (!raw) {
+      console.log("No hay progreso para este usuario:", storageKey);
+      return null;
     }
 
-    return null;
+    const progreso = JSON.parse(raw);
+
+    if (
+      !progreso ||
+      progreso.enProgreso !== true ||
+      !progreso.ultimaPagina ||
+      !progreso.ultimaPagina.hrefRelativo
+    ) {
+      console.log("El progreso encontrado no es válido:", storageKey);
+      return null;
+    }
+
+    // Seguridad extra:
+    // Si el progreso tiene usuarioKey guardado, debe coincidir con el usuario actual.
+    if (
+      progreso.usuarioKey &&
+      String(progreso.usuarioKey).trim() !== String(usuarioKey).trim()
+    ) {
+      console.warn("El progreso no pertenece al usuario actual. Se ignora:", {
+        usuarioActual: usuarioKey,
+        usuarioProgreso: progreso.usuarioKey
+      });
+
+      return null;
+    }
+
+    console.log("Progreso encontrado para usuario actual:", storageKey);
+    return progreso;
 
   } catch (error) {
     console.error("Error leyendo review en progreso:", error);
@@ -103,6 +106,7 @@ function obtenerParametroDesdeUrlGuardada(progreso, nombre) {
   try {
     const search = progreso?.ultimaPagina?.search || "";
     const params = new URLSearchParams(search);
+
     return params.get(nombre) || "";
   } catch (error) {
     return "";
@@ -148,6 +152,7 @@ function obtenerDatosAuditoriaDesdeProgreso(progreso) {
     businessUnit: String(
       progreso.businessUnit ||
       progreso.idBusinessUnit ||
+      progreso.IdBusinessUnit ||
       progreso.id_business_unit ||
       progreso.bu ||
       buUrl ||
@@ -156,6 +161,7 @@ function obtenerDatosAuditoriaDesdeProgreso(progreso) {
 
     businessUnitTexto: String(
       progreso.businessUnitTexto ||
+      progreso.NombreBusinessUnit ||
       progreso.businessUnitName ||
       progreso.businessUnitNombre ||
       progreso.business_unit ||
@@ -169,6 +175,7 @@ function obtenerDatosAuditoriaDesdeProgreso(progreso) {
     productionLine: String(
       progreso.productionLine ||
       progreso.idProductionLine ||
+      progreso.IdProductionLine ||
       progreso.id_production_line ||
       progreso.pl ||
       plUrl ||
@@ -177,6 +184,7 @@ function obtenerDatosAuditoriaDesdeProgreso(progreso) {
 
     productionLineTexto: String(
       progreso.productionLineTexto ||
+      progreso.NombreProductionLine ||
       progreso.productionLineName ||
       progreso.productionLineNombre ||
       progreso.production_line ||
@@ -191,11 +199,13 @@ function obtenerDatosAuditoriaDesdeProgreso(progreso) {
       progreso.reviewer ||
       progreso.reviewerName ||
       progreso.reviewerTexto ||
+      progreso.NombreUsuario ||
       ""
     ).trim(),
 
     assessmentDate: String(
       progreso.assessmentDate ||
+      progreso.FechaReview ||
       progreso.fecha ||
       progreso.fechaAuditoria ||
       progreso.date ||
@@ -206,7 +216,7 @@ function obtenerDatosAuditoriaDesdeProgreso(progreso) {
 
 // ======================================================
 // SELECCIONAR OPTION EN SELECT
-// Si no encuentra option, crea una opción temporal
+// Si no encuentra option, crea una opción temporal.
 // ======================================================
 function seleccionarValorEnSelectAuditoria(selectId, valor, texto) {
   const select = document.getElementById(selectId);
@@ -238,13 +248,15 @@ function seleccionarValorEnSelectAuditoria(selectId, valor, texto) {
     }
   });
 
-  // Si no encontró coincidencia, crea una opción temporal para mostrar el texto
+  // Si no encuentra coincidencia, crea opción temporal para mostrar el valor.
   if (!encontrado && (valorLimpio || textoLimpio)) {
     const option = document.createElement("option");
+
     option.value = valorLimpio || textoLimpio;
     option.textContent = textoLimpio || valorLimpio;
     option.selected = true;
     option.setAttribute("data-progress-temp", "true");
+
     select.appendChild(option);
     encontrado = true;
   }
@@ -265,15 +277,14 @@ function cargarCamposAuditoriaConProgreso(progreso) {
   const reviewerSelect = document.getElementById("reviewerSelect");
   const assessmentDateInput = document.getElementById("assessmentDate");
 
-  // 1. Cargar Business Unit en el campo de arriba
+  // 1. Cargar Business Unit
   seleccionarValorEnSelectAuditoria(
     "businessUnit",
     datos.businessUnit,
     datos.businessUnitTexto
   );
 
-  // 2. Cargar Production Line en el campo de arriba
-  // Pequeño delay por si tu JS filtra PL después de seleccionar BU
+  // 2. Cargar Production Line después de que el change de BU filtre líneas
   setTimeout(() => {
     seleccionarValorEnSelectAuditoria(
       "productionLine",
@@ -284,11 +295,15 @@ function cargarCamposAuditoriaConProgreso(progreso) {
     if (productionLineSelect) {
       productionLineSelect.disabled = true;
     }
-  }, 200);
+  }, 300);
 
   // 3. Cargar reviewer si existe
   if (reviewerSelect && datos.reviewer) {
-    seleccionarValorEnSelectAuditoria("reviewerSelect", datos.reviewer, datos.reviewer);
+    seleccionarValorEnSelectAuditoria(
+      "reviewerSelect",
+      datos.reviewer,
+      datos.reviewer
+    );
   }
 
   // 4. Cargar fecha si existe
@@ -296,7 +311,7 @@ function cargarCamposAuditoriaConProgreso(progreso) {
     assessmentDateInput.value = datos.assessmentDate;
   }
 
-  // 5. Deshabilitar campos
+  // 5. Bloquear campos porque ya hay auditoría en progreso
   if (businessUnitSelect) businessUnitSelect.disabled = true;
   if (reviewerSelect) reviewerSelect.disabled = true;
   if (assessmentDateInput) assessmentDateInput.disabled = true;
@@ -318,7 +333,7 @@ function bloquearBotonEmpezarEvaluacion() {
 }
 
 // ======================================================
-// DESBLOQUEAR SI NO HAY PROGRESO
+// DESBLOQUEAR SI NO HAY PROGRESO DEL USUARIO ACTUAL
 // ======================================================
 function desbloquearAuditoriaSinProgreso() {
   const btnStart = document.getElementById("btnStart");
@@ -336,8 +351,16 @@ function desbloquearAuditoriaSinProgreso() {
   }
 
   if (businessUnitSelect) businessUnitSelect.disabled = false;
-  if (productionLineSelect) productionLineSelect.disabled = false;
-  if (reviewerSelect) reviewerSelect.disabled = false;
+
+  // Production Line normalmente inicia deshabilitada hasta seleccionar BU.
+  // Si ya hay BU seleccionada, se puede dejar habilitada.
+  if (productionLineSelect) {
+    productionLineSelect.disabled = !businessUnitSelect || !businessUnitSelect.value;
+  }
+
+  // Reviewer normalmente debe seguir bloqueado porque viene del usuario logueado.
+  if (reviewerSelect) reviewerSelect.disabled = true;
+
   if (assessmentDateInput) assessmentDateInput.disabled = false;
 }
 
@@ -379,13 +402,13 @@ function renderBotonContinuarProgresoAuditoria() {
     return;
   }
 
-  // Cargar los datos arriba, en los campos BU/PL
+  // Cargar datos arriba en BU / PL / fecha
   cargarCamposAuditoriaConProgreso(progreso);
 
-  // Bloquear empezar evaluación
+  // Bloquear botón empezar
   bloquearBotonEmpezarEvaluacion();
 
-  // Mostrar solo el botón continuar
+  // Mostrar botón continuar
   contenedor.style.display = "block";
 
   contenedor.innerHTML = `
@@ -413,8 +436,8 @@ function renderBotonContinuarProgresoAuditoria() {
 // INICIO
 // ======================================================
 document.addEventListener("DOMContentLoaded", function () {
-  // Delay para que JavaScript.js/auth.js carguen selects y reviewer
+  // Delay para que JavaScript.js/auth.js carguen usuario, catálogos y reviewer
   setTimeout(() => {
     renderBotonContinuarProgresoAuditoria();
-  }, 500);
+  }, 700);
 });

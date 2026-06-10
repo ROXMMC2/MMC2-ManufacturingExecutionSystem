@@ -1,18 +1,6 @@
-// ======================================================
-// PROGRESO DE PREGUNTAS
-// Archivo: progresopreguntas.js
-//
-// Este archivo va en los 6 HTMLs de preguntas.
-// Guarda el progreso en localStorage y manda a Auditoría.
-// También restaura respuestas cuando regresas al módulo.
-// Guarda BU y PL para mostrarlas en los campos de Auditoria.html.
-// NO toca Azure SQL.
-// ======================================================
 
 const STORAGE_KEY_REVIEW_EN_PROGRESO = "reviewEnProgresoActual";
 
-// Si tus módulos están en la misma carpeta que Auditoria.html, deja esto.
-// Si están en una subcarpeta, cambia a "../Auditoria.html"
 const URL_AUDITORIA = "./Auditoria.html";
 
 // ======================================================
@@ -45,7 +33,7 @@ const PRODUCTION_LINES_MAP = {
 };
 
 // ======================================================
-// USUARIO
+// USUARIO ACTUAL
 // ======================================================
 function getUsuarioSesionProgreso() {
   try {
@@ -55,6 +43,7 @@ function getUsuarioSesionProgreso() {
       null
     );
   } catch (error) {
+    console.error("Error leyendo usuario de sesión:", error);
     return null;
   }
 }
@@ -62,7 +51,7 @@ function getUsuarioSesionProgreso() {
 function getUsuarioKeyProgreso() {
   const user = getUsuarioSesionProgreso();
 
-  if (!user) return "usuario_sin_sesion";
+  if (!user) return "";
 
   return String(
     user.id ||
@@ -74,12 +63,16 @@ function getUsuarioKeyProgreso() {
     user.user ||
     user.name ||
     user.nombre ||
-    "usuario_sin_sesion"
+    ""
   ).trim();
 }
 
 function getStorageKeyReviewEnProgreso() {
-  return `${STORAGE_KEY_REVIEW_EN_PROGRESO}_${getUsuarioKeyProgreso()}`;
+  const usuarioKey = getUsuarioKeyProgreso();
+
+  if (!usuarioKey) return "";
+
+  return `${STORAGE_KEY_REVIEW_EN_PROGRESO}_${usuarioKey}`;
 }
 
 // ======================================================
@@ -142,7 +135,8 @@ function obtenerTextoPL(idOrText) {
 }
 
 // ======================================================
-// BUSCAR DATOS DE AUDITORÍA EN LOCALSTORAGE
+// EXTRAER DATOS DE AUDITORÍA DESDE OBJETO
+// Soporta nombres normalizados y nombres de tu backend.
 // ======================================================
 function extraerDatosAuditoriaDesdeObjeto(data) {
   if (!data || typeof data !== "object") return null;
@@ -150,6 +144,7 @@ function extraerDatosAuditoriaDesdeObjeto(data) {
   const businessUnit =
     data.businessUnit ||
     data.idBusinessUnit ||
+    data.IdBusinessUnit ||
     data.id_business_unit ||
     data.businessUnitId ||
     data.bu ||
@@ -160,6 +155,7 @@ function extraerDatosAuditoriaDesdeObjeto(data) {
 
   const businessUnitTexto =
     data.businessUnitTexto ||
+    data.NombreBusinessUnit ||
     data.businessUnitName ||
     data.businessUnitNombre ||
     data.businessUnitLabel ||
@@ -173,6 +169,7 @@ function extraerDatosAuditoriaDesdeObjeto(data) {
   const productionLine =
     data.productionLine ||
     data.idProductionLine ||
+    data.IdProductionLine ||
     data.id_production_line ||
     data.productionLineId ||
     data.pl ||
@@ -183,6 +180,7 @@ function extraerDatosAuditoriaDesdeObjeto(data) {
 
   const productionLineTexto =
     data.productionLineTexto ||
+    data.NombreProductionLine ||
     data.productionLineName ||
     data.productionLineNombre ||
     data.productionLineLabel ||
@@ -195,14 +193,23 @@ function extraerDatosAuditoriaDesdeObjeto(data) {
 
   const reviewer =
     data.reviewer ||
-    data.reviewerName ||
-    data.reviewerTexto ||
+    data.IdUsuario ||
+    data.idUsuario ||
+    data.id_usuario ||
+    data.reviewerId ||
     data.reviewerSelect ||
+    "";
+
+  const reviewerTexto =
+    data.reviewerTexto ||
+    data.NombreUsuario ||
+    data.reviewerName ||
     data.reviewerNombre ||
     "";
 
   const assessmentDate =
     data.assessmentDate ||
+    data.FechaReview ||
     data.fecha ||
     data.fechaAuditoria ||
     data.date ||
@@ -215,6 +222,7 @@ function extraerDatosAuditoriaDesdeObjeto(data) {
     productionLine ||
     productionLineTexto ||
     reviewer ||
+    reviewerTexto ||
     assessmentDate
   ) {
     return {
@@ -223,6 +231,7 @@ function extraerDatosAuditoriaDesdeObjeto(data) {
       productionLine: limpiarTextoProgreso(productionLine),
       productionLineTexto: limpiarTextoProgreso(productionLineTexto),
       reviewer: limpiarTextoProgreso(reviewer),
+      reviewerTexto: limpiarTextoProgreso(reviewerTexto),
       assessmentDate: limpiarTextoProgreso(assessmentDate)
     };
   }
@@ -230,18 +239,24 @@ function extraerDatosAuditoriaDesdeObjeto(data) {
   return null;
 }
 
+// ======================================================
+// BUSCAR DATOS DE AUDITORÍA EN LLAVES CONOCIDAS
+//
+// IMPORTANTE:
+// Ya NO busca en todo localStorage para evitar tomar datos
+// de otro usuario.
+// ======================================================
 function obtenerDatosAuditoriaGuardadosProgreso() {
   try {
-    // 1. Primero intenta con llaves conocidas
     const posiblesKeys = [
+      "modelLineAuditData",
+      "reviewInfo",
       "auditData",
       "auditoriaData",
       "reviewData",
       "currentAudit",
       "datosAuditoria",
-      "modelLineAuditData",
       "auditInfo",
-      "reviewInfo",
       "assessmentData",
       "modelLineAssessment",
       "datosEvaluacion"
@@ -249,6 +264,7 @@ function obtenerDatosAuditoriaGuardadosProgreso() {
 
     for (const key of posiblesKeys) {
       const raw = localStorage.getItem(key);
+
       if (!raw) continue;
 
       try {
@@ -256,25 +272,7 @@ function obtenerDatosAuditoriaGuardadosProgreso() {
         const datos = extraerDatosAuditoriaDesdeObjeto(data);
 
         if (datos) return datos;
-      } catch {
-        continue;
-      }
-    }
-
-    // 2. Si no encuentra nada, busca en TODO localStorage
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-
-      try {
-        const data = JSON.parse(raw);
-        const datos = extraerDatosAuditoriaDesdeObjeto(data);
-
-        if (datos) return datos;
-      } catch {
+      } catch (errorInterno) {
         continue;
       }
     }
@@ -285,6 +283,7 @@ function obtenerDatosAuditoriaGuardadosProgreso() {
       productionLine: "",
       productionLineTexto: "",
       reviewer: "",
+      reviewerTexto: "",
       assessmentDate: ""
     };
 
@@ -297,6 +296,7 @@ function obtenerDatosAuditoriaGuardadosProgreso() {
       productionLine: "",
       productionLineTexto: "",
       reviewer: "",
+      reviewerTexto: "",
       assessmentDate: ""
     };
   }
@@ -372,20 +372,46 @@ function obtenerBusinessUnitYProductionLineProgreso() {
     productionLine: limpiarTextoProgreso(productionLine),
     productionLineTexto: limpiarTextoProgreso(productionLineTexto),
     reviewer: limpiarTextoProgreso(datosStorage.reviewer),
+    reviewerTexto: limpiarTextoProgreso(datosStorage.reviewerTexto),
     assessmentDate: limpiarTextoProgreso(datosStorage.assessmentDate)
   };
 }
 
 // ======================================================
-// OBTENER REVIEW EN PROGRESO
+// OBTENER REVIEW EN PROGRESO DEL USUARIO ACTUAL
 // ======================================================
 function obtenerReviewEnProgreso() {
   try {
-    const raw = localStorage.getItem(getStorageKeyReviewEnProgreso());
+    const usuarioKey = getUsuarioKeyProgreso();
+    const storageKey = getStorageKeyReviewEnProgreso();
+
+    if (!usuarioKey || !storageKey) {
+      console.log("No hay usuario logueado. No se busca progreso.");
+      return null;
+    }
+
+    const raw = localStorage.getItem(storageKey);
 
     if (!raw) return null;
 
-    return JSON.parse(raw);
+    const progreso = JSON.parse(raw);
+
+    // Seguridad extra:
+    // Si el progreso tiene usuarioKey, debe coincidir con el usuario actual.
+    if (
+      progreso &&
+      progreso.usuarioKey &&
+      String(progreso.usuarioKey).trim() !== String(usuarioKey).trim()
+    ) {
+      console.warn("El progreso encontrado no pertenece al usuario actual. Se ignora.", {
+        usuarioActual: usuarioKey,
+        usuarioProgreso: progreso.usuarioKey
+      });
+
+      return null;
+    }
+
+    return progreso;
 
   } catch (error) {
     console.error("Error leyendo review en progreso:", error);
@@ -495,11 +521,19 @@ function aplicarRespuestasGuardadas(respuestas) {
 // ======================================================
 function guardarProgresoPreguntas() {
   try {
+    const usuarioKey = getUsuarioKeyProgreso();
+    const storageKey = getStorageKeyReviewEnProgreso();
+
+    if (!usuarioKey || !storageKey) {
+      alert("No se encontró el usuario actual. Vuelve a iniciar sesión.");
+      return;
+    }
+
     const progresoAnterior = obtenerReviewEnProgreso();
 
     const progreso = progresoAnterior || {
       creadoEn: new Date().toISOString(),
-      usuarioKey: getUsuarioKeyProgreso(),
+      usuarioKey: usuarioKey,
       paginas: {}
     };
 
@@ -509,6 +543,7 @@ function guardarProgresoPreguntas() {
     const datosAuditoria = obtenerBusinessUnitYProductionLineProgreso();
 
     progreso.enProgreso = true;
+    progreso.usuarioKey = usuarioKey;
     progreso.actualizadoEn = new Date().toISOString();
     progreso.ultimaPagina = paginaActual;
 
@@ -520,7 +555,12 @@ function guardarProgresoPreguntas() {
 
     // Extra
     progreso.reviewer = datosAuditoria.reviewer;
+    progreso.reviewerTexto = datosAuditoria.reviewerTexto;
     progreso.assessmentDate = datosAuditoria.assessmentDate;
+
+    if (!progreso.paginas || typeof progreso.paginas !== "object") {
+      progreso.paginas = {};
+    }
 
     progreso.paginas[keyPagina] = {
       pagina: paginaActual,
@@ -530,16 +570,15 @@ function guardarProgresoPreguntas() {
       productionLine: datosAuditoria.productionLine,
       productionLineTexto: datosAuditoria.productionLineTexto,
       reviewer: datosAuditoria.reviewer,
+      reviewerTexto: datosAuditoria.reviewerTexto,
       assessmentDate: datosAuditoria.assessmentDate,
       guardadoEn: new Date().toISOString()
     };
 
-    localStorage.setItem(getStorageKeyReviewEnProgreso(), JSON.stringify(progreso));
+    localStorage.setItem(storageKey, JSON.stringify(progreso));
 
-    // Debug útil para verificar en consola
-    console.log("Progreso guardado:", progreso);
+    console.log("Progreso guardado para usuario:", usuarioKey, progreso);
 
-    // Después de guardar, mandar al apartado de auditoría
     window.location.href = URL_AUDITORIA;
 
   } catch (error) {
@@ -569,7 +608,11 @@ function cargarProgresoDeEstaPagina() {
 // Llama esta función después de guardar la review real en Azure SQL.
 // ======================================================
 function limpiarReviewEnProgreso() {
-  localStorage.removeItem(getStorageKeyReviewEnProgreso());
+  const storageKey = getStorageKeyReviewEnProgreso();
+
+  if (!storageKey) return;
+
+  localStorage.removeItem(storageKey);
 }
 
 // Hacerla global por si la necesitas desde otro JS
