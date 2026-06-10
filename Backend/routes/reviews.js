@@ -16,8 +16,24 @@ function normalizeText(value) {
  return String(value || "").trim();
 }
 function sanitizeFechaReview(value) {
- const text = normalizeText(value);
- return text || null;
+  const text = normalizeText(value);
+
+  if (!text) return null;
+  const limpio = text
+    .replace("T", " ")
+    .replace("Z", "")
+    .split(".")[0]
+    .trim();
+
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(limpio)) {
+    return limpio;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(limpio)) {
+    return `${limpio} 00:00:00`;
+  }
+
+  return null;
 }
 // ======================================================
 // RESOLVER USUARIO
@@ -187,50 +203,60 @@ router.post("/guardar", async (req, res) => {
      NombreProductionLine,
      idBusinessUnit: idBusinessUnitReal
    });
-   const fechaReviewSanitizada = sanitizeFechaReview(FechaReview);
-   let reviewResult;
-   if (fechaReviewSanitizada) {
-     reviewResult = await new sql.Request(transaction)
-       .input("idusuario", sql.Int, idUsuarioReal)
-       .input("idbusinessunit", sql.Int, idBusinessUnitReal)
-       .input("idproductionline", sql.Int, idProductionLineReal)
-       .input("fechareview", sql.DateTime2, new Date(fechaReviewSanitizada))
-       .query(`
-         INSERT INTO dbo.reviews (
-           idusuario,
-           idbusinessunit,
-           idproductionline,
-           fechareview
-         )
-         OUTPUT INSERTED.idreview
-         VALUES (
-           @idusuario,
-           @idbusinessunit,
-           @idproductionline,
-           @fechareview
-         )
-       `);
-   } else {
-     reviewResult = await new sql.Request(transaction)
-       .input("idusuario", sql.Int, idUsuarioReal)
-       .input("idbusinessunit", sql.Int, idBusinessUnitReal)
-       .input("idproductionline", sql.Int, idProductionLineReal)
-       .query(`
-         INSERT INTO dbo.reviews (
-           idusuario,
-           idbusinessunit,
-           idproductionline,
-           fechareview
-         )
-         OUTPUT INSERTED.idreview
-         VALUES (
-           @idusuario,
-           @idbusinessunit,
-           @idproductionline,
-           GETDATE()
-         )
-       `);
-   }
+
+  const fechaReviewSanitizada = sanitizeFechaReview(FechaReview);
+  let reviewResult;
+
+  if (fechaReviewSanitizada) {
+    reviewResult = await new sql.Request(transaction)
+      .input("idusuario", sql.Int, idUsuarioReal)
+      .input("idbusinessunit", sql.Int, idBusinessUnitReal)
+      .input("idproductionline", sql.Int, idProductionLineReal)
+
+      // IMPORTANTE:
+      // Se manda como texto para evitar desfase de zona horaria en Azure/Node.
+      .input("fechareview", sql.NVarChar(19), fechaReviewSanitizada)
+
+      .query(`
+        INSERT INTO dbo.reviews (
+          idusuario,
+          idbusinessunit,
+          idproductionline,
+          fechareview
+        )
+        OUTPUT INSERTED.idreview
+        VALUES (
+          @idusuario,
+          @idbusinessunit,
+          @idproductionline,
+          CONVERT(datetime2(0), @fechareview, 120)
+        )
+      `);
+  } else {
+    reviewResult = await new sql.Request(transaction)
+      .input("idusuario", sql.Int, idUsuarioReal)
+      .input("idbusinessunit", sql.Int, idBusinessUnitReal)
+      .input("idproductionline", sql.Int, idProductionLineReal)
+      .query(`
+        INSERT INTO dbo.reviews (
+          idusuario,
+          idbusinessunit,
+          idproductionline,
+          fechareview
+        )
+        OUTPUT INSERTED.idreview
+        VALUES (
+          @idusuario,
+          @idbusinessunit,
+          @idproductionline,
+          CONVERT(
+            datetime2(0),
+            CONVERT(varchar(19), SYSDATETIMEOFFSET() AT TIME ZONE 'Central Standard Time (Mexico)', 120),
+            120
+          )
+        )
+      `);
+  }
    const idReview = reviewResult.recordset[0].idreview;
    for (const r of respuestas) {
      const idPregunta = toNumericId(r.IdPregunta);
@@ -308,7 +334,7 @@ router.get("/detalle/:idreview", async (req, res) => {
      .query(`
        SELECT
          r.idreview,
-         r.fechareview,
+         CONVERT(varchar(19), r.fechareview, 120) AS fechareview,
          u.nombre AS usuario,
          b.nombre AS businessunit,
          p.nombre AS productionline,
@@ -350,7 +376,7 @@ router.get("/todos", async (req, res) => {
    const result = await pool.request().query(`
      SELECT
        r.idreview,
-       r.fechareview,
+       CONVERT(varchar(19), r.fechareview, 120) AS fechareview,
        u.nombre AS usuario,
        b.nombre AS businessunit,
        p.nombre AS productionline,
@@ -394,7 +420,7 @@ router.get("/lista", async (req, res) => {
    const result = await pool.request().query(`
      SELECT
        r.idreview,
-       r.fechareview,
+       CONVERT(varchar(19), r.fechareview, 120) AS fechareview,
        u.nombre AS usuario,
        b.nombre AS businessunit,
        p.nombre AS productionline
